@@ -35,8 +35,6 @@ void pdims_(const int *const restrict desc, int *const restrict ldm, int *const 
 void l2gpair_(const int *const restrict i, const int *const restrict j, int *const restrict gi, int *const restrict gj, const int *const restrict desc, const int *const restrict blacs);
 void g2lpair_(int *i, int *j, int *gi, int *gj, int *desc, int *blacs);
 
-//void l2gpairnew_(const int *const restrict i, const int *const restrict j, int *const restrict gi, int *const restrict gj, const int *const restrict desc, const int *const restrict blacs);
-//void l2gpairnew_(const int *const restrict i, const int *const restrict j, int *const restrict g, const int *const restrict desc, const int *const restrict blacs);
 
 // putil.f
 #ifdef FC_LEN_T
