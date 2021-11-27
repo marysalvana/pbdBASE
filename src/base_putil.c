@@ -45,27 +45,6 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
   }
 }
 
-/*
-void covfunc_(int *MODEL, double *PARAM, double *l1, double *l2, double *gi)
-{
-  double expr = 0.0;
-  double con = 0.0;
-  double sigma_square = PARAM[0];
-
-  con = pow(2,(PARAM[2] - 1)) * tgamma(PARAM[2]);
-  con = 1.0/con;
-  con = sigma_square * con;
-
-  expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / PARAM[1];
-
-  if(expr == 0){
-    *gi = sigma_square;
-  }else{
-    *gi = con * pow(expr, PARAM[2]) * gsl_sf_bessel_Knu(PARAM[2], expr);
-  }
-}
-*/
-
 SEXP R_MKSUBMAT(SEXP GBLX, SEXP LDIM, SEXP DESCX)
 {
   SEXP SUBX;
