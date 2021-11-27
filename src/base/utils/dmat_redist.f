@@ -116,6 +116,53 @@
       RETURN
       END SUBROUTINE
 
+! Construct local distance matrix from global location matrix
+! INPUTS
+  ! GBLX = Global, non-distributed matrix.  Owned by which processor(s) depends 
+    ! on R/CSRC values
+  ! DESCX = ScaLAPACK descriptor array for SUBX (not a typo).
+  ! RSRC/CSRC = Row/Column process value corresponding to BLACS grid for the
+    ! value in DESCX(2) (the ICTXT) on which the data is stored.  If RSRC = -1,
+    ! then CSRC is ignored and total ownership is assumed, i.e., GBLX is owned 
+    ! by all processors.
+! OUTPUTS
+  ! SUBX = Local submatrix.
+      SUBROUTINE COVSUBMAT(MODEL, PARAM, GBLX, SUBX, DESCX)
+      IMPLICIT NONE
+      ! IN/OUT
+      INTEGER             DESCX(9), MODEL
+      DOUBLE PRECISION    GBLX(DESCX(3), DESCX(4)), SUBX(DESCX(9), *)
+      DOUBLE PRECISION    PARAM(3), L1(2), L2(2)
+      ! Local
+      INTEGER             M, N, I, J, GI, GJ, RBL, CBL, !TI, TJ,
+     $                    LDM(2), BLACS(5)
+      ! External
+      EXTERNAL            PDIMS, L2GPAIR, COVFUNC
+      
+      
+      ! Get local and proc grid info
+      CALL PDIMS(DESCX, LDM, BLACS)
+      
+      M = LDM(1)
+      N = LDM(2)
+      
+      RBL = DESCX(5)
+      CBL = DESCX(6)
+      
+      IF (M.GT.0 .AND. N.GT.0) THEN
+        ! FIXME
+        DO J = 1, N
+          DO I = 1, M
+            CALL L2GPAIR(I, J, GI, GJ, DESCX, BLACS)
+            L1 = GBLX(GI, :)
+            L2 = GBLX(GJ, :)
+            CALL COVFUNC(MODEL, PARAM, L1, L2, SUBX(I, J))
+          END DO 
+        END DO
+      END IF
+      
+      RETURN
+      END SUBROUTINE
 
 ! Construct global matrix from local submatrix.
 ! INPUTS

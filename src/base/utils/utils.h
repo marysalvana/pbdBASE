@@ -9,7 +9,6 @@
   #include <string.h>
 #endif
 
-
 // blacs_util.f90
 void optimalgrid_(int *nprocs, int *nrows, int *ncols);
 #ifdef FC_LEN_T
@@ -28,6 +27,7 @@ void optimalgrid_(int *nprocs, int *nrows, int *ncols);
 void mksubmat_(double *gblx, double *subx, int *descx);
 void mkgblmat_(double *gbls, double *subx, int *descx, int *rdest, int *cdest);
 
+void covsubmat_(int *model, double *param, double *gblx, double *subx, int *descx);
 
 // indices.f90
 void numrocwrap_(int *n, int *nb, int *iproc, int *nprocs, int *num);
@@ -35,6 +35,8 @@ void pdims_(const int *const restrict desc, int *const restrict ldm, int *const 
 void l2gpair_(const int *const restrict i, const int *const restrict j, int *const restrict gi, int *const restrict gj, const int *const restrict desc, const int *const restrict blacs);
 void g2lpair_(int *i, int *j, int *gi, int *gj, int *desc, int *blacs);
 
+//void l2gpairnew_(const int *const restrict i, const int *const restrict j, int *const restrict gi, int *const restrict gj, const int *const restrict desc, const int *const restrict blacs);
+//void l2gpairnew_(const int *const restrict i, const int *const restrict j, int *const restrict g, const int *const restrict desc, const int *const restrict blacs);
 
 // putil.f
 #ifdef FC_LEN_T
@@ -63,7 +65,6 @@ void pddiagmk_(double *x, int *ix, int *jx, int *descx, double *diag, int *ldiag
 void dhilbmk_(int *n, double *x);
 void pdhilbmk_(double *x, int *descx);
 void pdmkcpn1_(double *x, int *descx, double *coef);
-
 
 // util.f90
 #ifdef FC_LEN_T

@@ -45,6 +45,55 @@ base.mksubmat <- function(x, descx)
 }
 
 
+#' (Un)Distribute
+#' 
+#' (Un)Distribute matrix.
+#' 
+#' For advanced users only. See pbdDMAT for high-level functions.
+#' 
+#' @param x
+#' Matrix.
+#' @param descx
+#' ScaLAPACK descriptor array.
+#' 
+#' @examples
+#' spmd.code <- "
+#'   suppressMessages(library(pbdMPI))
+#'   suppressMessages(library(pbdBASE))
+#'   init.grid()
+#'
+#'   ### Set data matrix and desc.
+#'   x <- matrix(as.double(1:30), nrow = 6, ncol = 5)
+#'   dim <- dim(x)
+#'   bldim <- c(3L, 3L)
+#'   ldim <- base.numroc(dim = dim, bldim = bldim)
+#'   descx <- base.descinit(dim = dim, bldim = bldim, ldim = ldim)
+#'
+#'   ### Redistribute from rank 0.
+#'   dx <- base.mksubmat(x, descx)
+#'   comm.print(dx, all.rank = TRUE)
+#'
+#'   finalize()
+#' "
+#' pbdMPI::execmpi(spmd.code = spmd.code, nranks = 2L)
+#' 
+#' @useDynLib pbdBASE R_COVSUBMAT
+#' @rdname lclgblmat
+#' @export
+base.covsubmat <- function(model, param, x, descx)
+{
+  ldim <- base.numroc(dim=descx[3L:4L], bldim=descx[5L:6L], ICTXT=descx[2L], fixme=TRUE)
+  
+  if (!is.double(x))
+    storage.mode(x) <- "double"
+  if (!is.double(param))
+    storage.mode(param) <- "double"
+  if (!is.integer(model))
+    storage.mode(model) <- "integer"
+  
+  subx <- .Call(R_COVSUBMAT, model, param, x, as.integer(ldim), as.integer(descx))
+  subx
+}
 
 #' @param rsrc,csrc
 #' Row/column source.

@@ -4,7 +4,9 @@
 
 // Copyright 2013, 2016 Schmidt
 
+#include <gsl/gsl_sf_bessel.h>
 #include <string.h>
+#include <math.h>
 
 #include "base/linalg/linalg.h"
 #include "base/utils/utils.h"
@@ -12,6 +14,57 @@
 // R.h and Rinternals.h needs to be included after Rconfig.h
 #include "pbdBASE.h"
 
+double matern(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0;
+  double sigma_square = PARAM[0];
+
+  con = pow(2,(PARAM[2] - 1)) * tgamma(PARAM[2]);
+  con = 1.0/con;
+  con = sigma_square * con;
+
+  expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / PARAM[1];
+
+  if(expr == 0){
+    cov_val = sigma_square;
+  }else{
+    cov_val = con * pow(expr, PARAM[2]) * gsl_sf_bessel_Knu(PARAM[2], expr);
+  }
+  return cov_val;
+}
+
+void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, double *gi)
+{
+
+  if(*MODEL_NUM == 1){
+    *gi = matern(PARAM_VECTOR, L1, L2);
+  }else{
+    *gi = matern(PARAM_VECTOR, L1, L2);
+  }
+}
+
+/*
+void covfunc_(int *MODEL, double *PARAM, double *l1, double *l2, double *gi)
+{
+  double expr = 0.0;
+  double con = 0.0;
+  double sigma_square = PARAM[0];
+
+  con = pow(2,(PARAM[2] - 1)) * tgamma(PARAM[2]);
+  con = 1.0/con;
+  con = sigma_square * con;
+
+  expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / PARAM[1];
+
+  if(expr == 0){
+    *gi = sigma_square;
+  }else{
+    *gi = con * pow(expr, PARAM[2]) * gsl_sf_bessel_Knu(PARAM[2], expr);
+  }
+}
+*/
 
 SEXP R_MKSUBMAT(SEXP GBLX, SEXP LDIM, SEXP DESCX)
 {
@@ -23,6 +76,18 @@ SEXP R_MKSUBMAT(SEXP GBLX, SEXP LDIM, SEXP DESCX)
   UNPROTECT(1);
   return SUBX;
 } 
+
+SEXP R_COVSUBMAT(SEXP MODEL, SEXP PARAM, SEXP GBLX, SEXP LDIM, SEXP DESCX)
+{
+  SEXP SUBX;
+  PROTECT(SUBX = allocMatrix(REALSXP, INTEGER(LDIM)[0], INTEGER(LDIM)[1]));
+  
+  covsubmat_(INTEGER(MODEL), REAL(PARAM), REAL(GBLX), REAL(SUBX), INTEGER(DESCX));
+
+  UNPROTECT(1);
+  return SUBX;
+} 
+
 
 
 

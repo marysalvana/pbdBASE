@@ -2776,6 +2776,67 @@ echo "*************************************************************************"
 echo " "
 
 
+
+set dummy gsl-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_GSL_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $GSL_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_GSL_CONFIG="$GSL_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_GSL_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+GSL_CONFIG=$ac_cv_path_GSL_CONFIG
+if test -n "$GSL_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $GSL_CONFIG" >&5
+printf "%s\n" "$GSL_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+## If gsl-config was found, let's use it
+if test "${GSL_CONFIG}" != ""; then
+   # Use gsl-config for header and linker arguments
+   GSL_CFLAGS=`${GSL_CONFIG} --cflags`
+   GSL_LIBS=`${GSL_CONFIG} --libs`
+   CFLAGS="$CFLAGS $GSL_CFLAGS"  # kindly supplied by Ray Brownrigg
+else
+   as_fn_error $? "gsl-config not found, is GSL installed?" "$LINENO" 5
+fi
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if GSL version >= 2.5" >&5
+printf %s "checking if GSL version >= 2.5... " >&6; }
+
+
+
+
 # Substitute templates
 
 

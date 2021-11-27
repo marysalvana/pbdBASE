@@ -33,4 +33,4 @@ Authors@R: c(person("Drew", "Schmidt", role="aut", email="wrathematics@gmail.com
     person("Pragneshkumar", "Patel", role="aut"),
     person("Ewan", "Higgs", role="ctb"))
 Maintainer: Wei-Chen Chen <wccsnow@gmail.com>
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

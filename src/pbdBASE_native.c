@@ -5,9 +5,11 @@
 #include <R_ext/Rdynload.h>
 #include <stdlib.h>
 
+//extern SEXP R_MATERN(SEXP NU, SEXP DISTANCE);
 extern SEXP R_DHILBMK(SEXP N);
 extern SEXP R_MKGBLMAT(SEXP SUBX, SEXP DESCX, SEXP RDEST, SEXP CDEST);
 extern SEXP R_MKSUBMAT(SEXP GBLX, SEXP LDIM, SEXP DESCX);
+extern SEXP R_COVSUBMAT(SEXP MODEL, SEXP PARAM, SEXP GBLX, SEXP LDIM, SEXP DESCX);
 extern SEXP R_NUMROC(SEXP N, SEXP NB, SEXP IPROC, SEXP NPROCS);
 extern SEXP R_PDCHTRI(SEXP UPLO, SEXP A, SEXP ALDIM, SEXP DESCA, SEXP CLDIM, SEXP DESCC);
 extern SEXP R_PDCLVAR(SEXP X, SEXP DESCX, SEXP LSD);
@@ -76,6 +78,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"R_DHILBMK", (DL_FUNC) &R_DHILBMK, 1},
   {"R_MKGBLMAT", (DL_FUNC) &R_MKGBLMAT, 4},
   {"R_MKSUBMAT", (DL_FUNC) &R_MKSUBMAT, 3},
+  {"R_COVSUBMAT", (DL_FUNC) &R_COVSUBMAT, 5},
   {"R_NUMROC", (DL_FUNC) &R_NUMROC, 4},
   {"R_PDCHTRI", (DL_FUNC) &R_PDCHTRI, 6},
   {"R_PDCLVAR", (DL_FUNC) &R_PDCLVAR, 3},
@@ -144,11 +147,13 @@ static const R_CallMethodDef CallEntries[] = {
 
 extern void set_BLACS_APTS_in_R();
 extern void get_BLACS_APTS_from_R();
+
 static const R_CMethodDef CEntries[] = {
   {"set_BLACS_APTS_in_R", (DL_FUNC) &set_BLACS_APTS_in_R, 0, NULL},
   {"get_BLACS_APTS_from_R", (DL_FUNC) &get_BLACS_APTS_from_R, 0, NULL},
   {NULL, NULL, 0, NULL}
 };
+
 
 void R_init_pbdBASE(DllInfo *dll)
 {
