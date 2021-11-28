@@ -70,6 +70,7 @@ double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *
   vel_variance12_new = vel_variance12 * pow(tlag, 2);
 
   det = vel_variance11_new * vel_variance22_new - pow(vel_variance12_new, 2);
+  //printf("location1: %f, %f, %f; location2: %f, %f, %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2]);
 
   Inv_11 = vel_variance22_new / det;
   Inv_22 = vel_variance11_new / det;

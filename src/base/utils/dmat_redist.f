@@ -132,7 +132,7 @@
       ! IN/OUT
       INTEGER             DESCX(9), MODEL
       DOUBLE PRECISION    GBLX(DESCX(3), DESCX(4)), SUBX(DESCX(9), *)
-      DOUBLE PRECISION    PARAM(3), L1(2), L2(2)
+      DOUBLE PRECISION    PARAM(3), L1(3), L2(3)
       ! Local
       INTEGER             M, N, I, J, GI, GJ, RBL, CBL, !TI, TJ,
      $                    LDM(2), BLACS(5)
