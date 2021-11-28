@@ -116,7 +116,7 @@
       RETURN
       END SUBROUTINE
 
-! Construct local distance matrix from global location matrix
+! Construct covariance matrix from global location matrix
 ! INPUTS
   ! GBLX = Global, non-distributed matrix.  Owned by which processor(s) depends 
     ! on R/CSRC values
@@ -126,7 +126,7 @@
     ! then CSRC is ignored and total ownership is assumed, i.e., GBLX is owned 
     ! by all processors.
 ! OUTPUTS
-  ! SUBX = Local submatrix.
+  ! SUBX = Local covariance submatrix.
       SUBROUTINE COVSUBMAT(MODEL, PARAM, GBLX, SUBX, DESCX)
       IMPLICIT NONE
       ! IN/OUT
