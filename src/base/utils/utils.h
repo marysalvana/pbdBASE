@@ -28,6 +28,7 @@ void mksubmat_(double *gblx, double *subx, int *descx);
 void mkgblmat_(double *gbls, double *subx, int *descx, int *rdest, int *cdest);
 
 void covsubmat_(int *model, double *param, double *gblx, double *subx, int *descx);
+void crosscovsubmat_(int *model, double *param, double *gblx, double *subx, int *descx);
 
 // indices.f90
 void numrocwrap_(int *n, int *nb, int *iproc, int *nprocs, int *num);

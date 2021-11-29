@@ -164,6 +164,87 @@
       RETURN
       END SUBROUTINE
 
+
+! Construct cross-covariance matrix from global location matrix
+! INPUTS
+  ! GBLX = Global, non-distributed matrix.  Owned by which processor(s) depends 
+    ! on R/CSRC values
+  ! DESCX = ScaLAPACK descriptor array for SUBX (not a typo).
+  ! RSRC/CSRC = Row/Column process value corresponding to BLACS grid for the
+    ! value in DESCX(2) (the ICTXT) on which the data is stored.  If RSRC = -1,
+    ! then CSRC is ignored and total ownership is assumed, i.e., GBLX is owned 
+    ! by all processors.
+! OUTPUTS
+  ! SUBX = Local cross-covariance submatrix.
+      SUBROUTINE CROSSCOVSUBMAT(MODEL, PARAM, GBLX, SUBX, DESCX)
+      IMPLICIT NONE
+      ! IN/OUT
+      INTEGER             DESCX(9), MODEL
+      DOUBLE PRECISION    GBLX(DESCX(3), DESCX(4)), SUBX(DESCX(9), *)
+      !DOUBLE PRECISION    SUBX(2 * DESCX(9), *)
+      DOUBLE PRECISION    PARAM(6), L1(4), L2(4) 
+      !DOUBLE PRECISION    PARAM1(3), PARAM2(3), PARAM12(3)
+
+      ! Local
+      INTEGER             M, N, I, J, GI, GJ, RBL, CBL, INDX, INDY,
+     $                    LDM(2), BLACS(5)
+      ! External
+      EXTERNAL            PDIMS, L2GPAIR, COVFUNC
+      
+      
+      ! Get local and proc grid info
+      CALL PDIMS(DESCX, LDM, BLACS)
+      
+      M = LDM(1)
+      N = LDM(2)
+      
+      RBL = DESCX(5)
+      CBL = DESCX(6)
+
+      !PARAM1(1) = PARAM(1)
+      !PARAM1(2) = PARAM(3)
+      !PARAM1(3) = PARAM(4)
+
+      !PARAM2(1) = PARAM(2)
+      !PARAM2(2) = PARAM(3)
+      !PARAM2(3) = PARAM(5)
+
+      !PARAM12(1) = PARAM(6) * SQRT(PARAM(1) * PARAM(2)) 
+      !PARAM12(2) = PARAM(3)
+      !PARAM12(3) = 0.5 * (PARAM(4) + PARAM(5))
+      
+      IF (M.GT.0 .AND. N.GT.0) THEN
+        ! FIXME
+        !DO J = 1, (2 * N), 2
+          !DO I = 1, (2 * M), 2
+        DO J = 1, N
+          DO I = 1, M
+            CALL L2GPAIR(I, J, GI, GJ, DESCX, BLACS)
+            L1 = GBLX(GI, :)
+            L2 = GBLX(GJ, :)
+            !INDX = (I - 1) * 2 + 1
+            !INDY = (J - 1) * 2 + 1
+            CALL COVFUNC(MODEL, PARAM, L1, L2, SUBX(I, J))
+            !INDX = (I - 1) * 2 + 2
+            !INDY = (J - 1) * 2 + 2
+            !CALL COVFUNC(MODEL, PARAM2, L1, L2, SUBX(INDX, INDY))
+            !INDX = (I - 1) * 2 + 1
+            !INDY = (J - 1) * 2 + 2
+            !CALL COVFUNC(MODEL, PARAM12, L1, L2, SUBX(INDX, INDY))
+            !INDX = (I - 1) * 2 + 2
+            !INDY = (J - 1) * 2 + 1
+            !CALL COVFUNC(MODEL, PARAM12, L1, L2, SUBX(INDX, INDY))
+            !CALL COVFUNC(MODEL, PARAM1, L1, L2, SUBX(I, J))
+            !CALL COVFUNC(MODEL, PARAM2, L1, L2, SUBX(I + 1, J + 1))
+            !CALL COVFUNC(MODEL, PARAM12, L1, L2, SUBX(I, J + 1))
+            !CALL COVFUNC(MODEL, PARAM12, L1, L2, SUBX(I + 1, J))
+          END DO 
+        END DO
+      END IF
+      
+      RETURN
+      END SUBROUTINE
+
 ! Construct global matrix from local submatrix.
 ! INPUTS
   ! SUBX = Local submatrix.

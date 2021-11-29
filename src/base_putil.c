@@ -32,6 +32,43 @@ double univariate_matern_spatial(double *PARAM, double *l1, double *l2)
   }else{
     cov_val = con * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
   }
+  //printf("loc1: %f, %f, %f; loc2: %f, %f, %f; dist: %f; cov: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], expr, cov_val);
+  return cov_val;
+}
+
+double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0;
+  double sigma_square = 0.0, range = PARAM[2], smoothness = 0.0;
+
+  if(l1[3] == l2[3]){
+    if(l1[3] == 1){
+      sigma_square = PARAM[0];
+      smoothness = PARAM[3];
+    }else{
+      sigma_square = PARAM[1];
+      smoothness = PARAM[4];
+    }
+  }else{
+    sigma_square = PARAM[5] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[3] + PARAM[4]);
+  }
+
+  con = pow(2, (smoothness - 1)) * tgamma(smoothness);
+  con = 1.0/con;
+  con = sigma_square * con;
+
+  expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / range;
+
+  if(expr == 0){
+    cov_val = sigma_square;
+  }else{
+    cov_val = con * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
+  }
+  //printf("loc1: %f, %f, %f; loc2: %f, %f, %f; dist: %f; cov: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], expr, cov_val);
+  //printf("loc1: %f, %f, %f, %f; loc2: %f, %f, %f, %f; dist: %f; cov: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], expr, cov_val);
   return cov_val;
 }
 
@@ -93,8 +130,10 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
 
   if(*MODEL_NUM == 1){
     *gi = univariate_matern_spatial(PARAM_VECTOR, L1, L2);
-  }else{
+  }else if(*MODEL_NUM == 2){
     *gi = univariate_matern_schlather_spacetime(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 3){
+    *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2);
   }
 }
 
@@ -120,6 +159,18 @@ SEXP R_COVSUBMAT(SEXP MODEL, SEXP PARAM, SEXP GBLX, SEXP LDIM, SEXP DESCX)
   return SUBX;
 } 
 
+
+SEXP R_CROSSCOVSUBMAT(SEXP MODEL, SEXP PARAM, SEXP GBLX, SEXP LDIM, SEXP DESCX)
+{
+  SEXP SUBX;
+  //PROTECT(SUBX = allocMatrix(REALSXP, 2 * INTEGER(LDIM)[0], 2 * INTEGER(LDIM)[1]));
+  PROTECT(SUBX = allocMatrix(REALSXP, INTEGER(LDIM)[0], INTEGER(LDIM)[1]));
+  
+  crosscovsubmat_(INTEGER(MODEL), REAL(PARAM), REAL(GBLX), REAL(SUBX), INTEGER(DESCX));
+
+  UNPROTECT(1);
+  return SUBX;
+} 
 
 
 
