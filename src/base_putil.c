@@ -67,8 +67,6 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
   }else{
     cov_val = con * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
   }
-  //printf("loc1: %f, %f, %f; loc2: %f, %f, %f; dist: %f; cov: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], expr, cov_val);
-  //printf("loc1: %f, %f, %f, %f; loc2: %f, %f, %f, %f; dist: %f; cov: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], expr, cov_val);
   return cov_val;
 }
 
@@ -125,6 +123,73 @@ double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *
   return cov_val;
 }
 
+double bivariate_matern_salvana_single_advection_spacetime(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0, con_new = 0.0;
+  double sigma_square = 0.0, range = PARAM[2], smoothness = 0.0;
+
+  if(l1[3] == l2[3]){
+    if(l1[3] == 1){
+      sigma_square = PARAM[0];
+      smoothness = PARAM[3];
+    }else{
+      sigma_square = PARAM[1];
+      smoothness = PARAM[4];
+    }
+  }else{
+    sigma_square = PARAM[5] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[3] + PARAM[4]);
+  }
+
+  double vel_mean_x = PARAM[6], vel_mean_y = PARAM[7];
+  double vel_variance_chol_11 = PARAM[8], vel_variance_chol_12 = PARAM[9], vel_variance_chol_22 = PARAM[10];
+  
+  double l1x_new, l1y_new, l2x_new, l2y_new, xlag, ylag, tlag;
+  double vel_variance11, vel_variance22, vel_variance12;
+  double vel_variance11_new, vel_variance22_new, vel_variance12_new;
+  double Inv_11, Inv_22, Inv_12, det;
+
+  con = pow(2,(smoothness - 1)) * tgamma(smoothness);
+  con = 1.0/con;
+
+  l1x_new = l1[0] - vel_mean_x * l1[2];
+  l1y_new = l1[1] - vel_mean_y * l1[2];
+  l2x_new = l2[0] - vel_mean_x * l2[2];
+  l2y_new = l2[1] - vel_mean_y * l2[2];
+
+  xlag = l1x_new - l2x_new;
+  ylag = l1y_new - l2y_new;
+  tlag = l1[2] - l2[2];
+
+  vel_variance11 = pow(vel_variance_chol_11, 2);
+  vel_variance22 = pow(vel_variance_chol_12, 2) + pow(vel_variance_chol_22, 2);
+  vel_variance12 = vel_variance_chol_11 * vel_variance_chol_12;
+
+  vel_variance11_new = 1 + vel_variance11 * pow(tlag, 2);
+  vel_variance22_new = 1 + vel_variance22 * pow(tlag, 2);
+  vel_variance12_new = vel_variance12 * pow(tlag, 2);
+
+  det = vel_variance11_new * vel_variance22_new - pow(vel_variance12_new, 2);
+  //printf("location1: %f, %f, %f; location2: %f, %f, %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2]);
+
+  Inv_11 = vel_variance22_new / det;
+  Inv_22 = vel_variance11_new / det;
+  Inv_12 = -vel_variance12_new / det;
+ 
+  expr = sqrt(pow(xlag, 2) * Inv_11 + 2 * xlag * ylag * Inv_12 + pow(ylag, 2) * Inv_22 ) / range;
+
+  con_new = sigma_square * con / sqrt(det);
+
+  if(expr == 0){
+    cov_val = sigma_square / sqrt(det);
+  }else{
+    cov_val = con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
+  }
+  return cov_val;
+}
+
 void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, double *gi)
 {
 
@@ -134,6 +199,8 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
     *gi = univariate_matern_schlather_spacetime(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 3){
     *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 4){
+    *gi = bivariate_matern_salvana_single_advection_spacetime(PARAM_VECTOR, L1, L2);
   }
 }
 
