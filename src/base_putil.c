@@ -423,7 +423,12 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
     gsl_matrix_memcpy(vel_variance_copy, vel_variance);
     vel_variance_inverse_cross = invert_a_matrix(vel_variance_copy, 4);   
 
-      //printf("t1: %d; t2: %d; var1: %d; var2: %d \n", t1, t2, variable1, variable2);
+  if(t1 == 0 & t2 == 1 & l1[0] == 0 & l1[1] == 0){
+    matrix_print(vel_variance_inverse_cross);    
+    //printf("expr: %f; det: %f \n", expr, det);
+  }
+
+
       //matrix_print(denom_temp);      
 
     gsl_matrix_memcpy(vel_variance_new_quasi_temp1, T_matrix_squared);
@@ -457,6 +462,7 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
 
   }
 
+      //printf("t1: %d; t2: %d; var1: %d; var2: %d \n", t1, t2, variable1, variable2);
   con = pow(2,(smoothness - 1)) * tgamma(smoothness);
   con = 1.0/con;
 
@@ -499,6 +505,107 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
 
 }
 
+double bivariate_lmc_spatial(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0, cov_val1 = 0.0, cov_val2 = 0.0;
+  double sigma_square1 = 1.0, range1 = 0.0, smoothness1 = 0.0, paramvec1[3], sigma_square2 = 1.0, range2 = 0.0, smoothness2 = 0.0, paramvec2[3];
+  double a11, a12, a21, a22;
+  int variable1, variable2;
+
+  variable1 = l1[3];
+  variable2 = l2[3];
+
+  range1 = PARAM[0];
+  smoothness1 = PARAM[2];
+
+  range2 = PARAM[1];
+  smoothness2 = PARAM[3];
+  
+  paramvec1[0] = sigma_square1;
+  paramvec1[1] = range1;
+  paramvec1[2] = smoothness1;
+  
+  cov_val1 = univariate_matern_spatial(paramvec1, l1, l2);
+
+  paramvec2[0] = sigma_square2;
+  paramvec2[1] = range2;
+  paramvec2[2] = smoothness2;
+
+  cov_val2 = univariate_matern_spatial(paramvec2, l1, l2);
+
+  a11 = PARAM[4];
+  a12 = PARAM[5];
+  a21 = PARAM[6];
+  a22 = PARAM[7];
+
+  if(variable1 == variable2){
+    if(variable1 == 1){
+      cov_val = pow(a11, 2) * cov_val1 + pow(a12, 2) * cov_val2;
+    }else{
+      cov_val = pow(a21, 2) * cov_val1 + pow(a22, 2) * cov_val2;
+    }
+  }else{
+      cov_val = a11 * a21 * cov_val1 + a12 * a22 * cov_val2;
+  }
+
+  return cov_val;
+}
+
+double univariate_deformation_matern_salvana_frozen_spacetime(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0, con_new = 0.0;
+  double sigma_square = PARAM[0], range = PARAM[1], smoothness = PARAM[2];
+  double vel_x = PARAM[3], vel_y = PARAM[4];
+  
+  double deform_source[2];
+  double deform_coef_x[3], deform_coef_y[3];
+
+  double dist_from_source_l1 = 0.0, dist_from_source_l2 = 0.0;  
+  double l1x_new, l1y_new, l2x_new, l2y_new, l1x_deform, l1y_deform, l2x_deform, l2y_deform, xlag, ylag;
+  
+  deform_source[0] = PARAM[5];
+  deform_source[1] = PARAM[6];
+
+  deform_coef_x[0] = PARAM[7];
+  deform_coef_x[1] = PARAM[8];
+  deform_coef_x[2] = PARAM[9];
+
+  deform_coef_y[0] = PARAM[10];
+  deform_coef_y[1] = PARAM[11];
+  deform_coef_y[2] = PARAM[12];
+
+  con = pow(2,(smoothness - 1)) * tgamma(smoothness);
+  con = 1.0/con;
+
+  l1x_new = l1[0] - vel_x * l1[2];
+  l1y_new = l1[1] - vel_y * l1[2];
+  l2x_new = l2[0] - vel_x * l2[2];
+  l2y_new = l2[1] - vel_y * l2[2];
+  
+  dist_from_source_l1 = sqrt(pow(l1x_new - deform_source[0], 2) + pow(l1y_new - deform_source[1], 2));
+  dist_from_source_l2 = sqrt(pow(l2x_new - deform_source[0], 2) + pow(l2y_new - deform_source[1], 2));
+
+  l1x_deform = deform_source[0] + (l1x_new - deform_source[0]) * (deform_coef_x[0] + deform_coef_x[1] * exp(-deform_coef_x[2] * pow(dist_from_source_l1, 2)));
+  l1y_deform = deform_source[1] + (l1y_new - deform_source[1]) * (deform_coef_y[0] + deform_coef_y[1] * exp(-deform_coef_y[2] * pow(dist_from_source_l1, 2)));
+  l2x_deform = deform_source[0] + (l2x_new - deform_source[0]) * (deform_coef_x[0] + deform_coef_x[1] * exp(-deform_coef_x[2] * pow(dist_from_source_l2, 2)));
+  l2y_deform = deform_source[1] + (l2y_new - deform_source[1]) * (deform_coef_y[0] + deform_coef_y[1] * exp(-deform_coef_y[2] * pow(dist_from_source_l2, 2)));
+
+  xlag = l1x_deform - l2x_deform;
+  ylag = l1y_deform - l2y_deform;
+
+  expr = sqrt(pow(xlag, 2) + pow(ylag, 2)) / range;
+
+  con_new = sigma_square * con;
+
+  if(expr == 0){
+    cov_val = sigma_square;
+  }else{
+    cov_val = con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
+  }
+  return cov_val;
+}
 
 void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, double *gi)
 {
@@ -513,6 +620,10 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
     *gi = bivariate_matern_salvana_single_advection_spacetime(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 5){
     *gi = bivariate_matern_salvana_multiple_advection_spacetime(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 6){
+    *gi = bivariate_lmc_spatial(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 7){
+    *gi = univariate_deformation_matern_salvana_frozen_spacetime(PARAM_VECTOR, L1, L2);
   }
 }
 
