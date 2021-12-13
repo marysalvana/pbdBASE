@@ -774,6 +774,75 @@ double bivariate_lmc_spatial(double *PARAM, double *l1, double *l2)
   return cov_val;
 }
 
+double bivariate_lmc_salvana_spacetime(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0, cov_val1 = 0.0, cov_val2 = 0.0;
+  double sigma_square1 = 1.0, range1 = 0.0, smoothness1 = 0.0, sigma_square2 = 1.0, range2 = 0.0, smoothness2 = 0.0;
+  double param_vector1[8], param_vector2[8], vel_mean_marginal1[2], vel_mean_marginal2[2], vel_variance_chol1[3], vel_variance_chol2[3];
+  double a11 = 0.0, a12 = 0.0, a21 = 0.0, a22 = 0.0;
+  int variable1, variable2;
+
+  variable1 = l1[3];
+  variable2 = l2[3];
+
+  range1 = PARAM[0];
+  smoothness1 = PARAM[2];
+
+  range2 = PARAM[1];
+  smoothness2 = PARAM[3];
+  
+  vel_mean_marginal1[0] = PARAM[4];
+  vel_mean_marginal1[1] = PARAM[5];
+  vel_mean_marginal2[0] = PARAM[6];
+  vel_mean_marginal2[1] = PARAM[7];
+
+  vel_variance_chol1[0] = PARAM[8];
+  vel_variance_chol1[1] = PARAM[9];
+  vel_variance_chol1[2] = PARAM[10];
+  vel_variance_chol2[0] = PARAM[11];
+  vel_variance_chol2[1] = PARAM[12];
+  vel_variance_chol2[2] = PARAM[13];
+  
+  param_vector1[0] = sigma_square1;
+  param_vector1[1] = range1;
+  param_vector1[2] = smoothness1;
+  param_vector1[3] = vel_mean_marginal1[0];
+  param_vector1[4] = vel_mean_marginal1[1];
+  param_vector1[5] = vel_variance_chol1[0];
+  param_vector1[6] = vel_variance_chol1[1];
+  param_vector1[7] = vel_variance_chol1[2];
+
+  cov_val1 = univariate_matern_schlather_spacetime(param_vector1, l1, l2, 0);
+
+  param_vector2[0] = sigma_square2;
+  param_vector2[1] = range2;
+  param_vector2[2] = smoothness2;
+  param_vector2[3] = vel_mean_marginal2[0];
+  param_vector2[4] = vel_mean_marginal2[1];
+  param_vector2[5] = vel_variance_chol2[0];
+  param_vector2[6] = vel_variance_chol2[1];
+  param_vector2[7] = vel_variance_chol2[2];
+
+  cov_val2 = univariate_matern_schlather_spacetime(param_vector2, l1, l2, 0);
+
+  a11 = PARAM[14];
+  a12 = PARAM[15];
+  a21 = PARAM[16];
+  a22 = PARAM[17];
+
+  if(variable1 == variable2){
+    if(variable1 == 1){
+      cov_val = pow(a11, 2) * cov_val1 + pow(a12, 2) * cov_val2;
+    }else{
+      cov_val = pow(a21, 2) * cov_val1 + pow(a22, 2) * cov_val2;
+    }
+  }else{
+      cov_val = a11 * a21 * cov_val1 + a12 * a22 * cov_val2;
+  }
+
+  return cov_val;
+}
+
 double univariate_deformation_matern_salvana_frozen_spacetime(double *PARAM, double *l1, double *l2)
 {
   double cov_val = 0.0;
@@ -847,6 +916,8 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
     *gi = bivariate_lmc_spatial(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 7){
     *gi = univariate_deformation_matern_salvana_frozen_spacetime(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 8){
+    *gi = bivariate_lmc_salvana_spacetime(PARAM_VECTOR, L1, L2);
   }
 }
 
