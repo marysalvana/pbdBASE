@@ -18,6 +18,258 @@
 // R.h and Rinternals.h needs to be included after Rconfig.h
 #include "pbdBASE.h"
 
+void InvertMatrix(const double m[16], double invOut[16])
+{
+    double inv[16], det;
+    int i;
+
+    inv[0] = m[5]  * m[10] * m[15] - 
+             m[5]  * m[11] * m[14] - 
+             m[9]  * m[6]  * m[15] + 
+             m[9]  * m[7]  * m[14] +
+             m[13] * m[6]  * m[11] - 
+             m[13] * m[7]  * m[10];
+
+    inv[4] = -m[4]  * m[10] * m[15] + 
+              m[4]  * m[11] * m[14] + 
+              m[8]  * m[6]  * m[15] - 
+              m[8]  * m[7]  * m[14] - 
+              m[12] * m[6]  * m[11] + 
+              m[12] * m[7]  * m[10];
+
+    inv[8] = m[4]  * m[9] * m[15] - 
+             m[4]  * m[11] * m[13] - 
+             m[8]  * m[5] * m[15] + 
+             m[8]  * m[7] * m[13] + 
+             m[12] * m[5] * m[11] - 
+             m[12] * m[7] * m[9];
+
+    inv[12] = -m[4]  * m[9] * m[14] + 
+               m[4]  * m[10] * m[13] +
+               m[8]  * m[5] * m[14] - 
+               m[8]  * m[6] * m[13] - 
+               m[12] * m[5] * m[10] + 
+               m[12] * m[6] * m[9];
+
+    inv[1] = -m[1]  * m[10] * m[15] + 
+              m[1]  * m[11] * m[14] + 
+              m[9]  * m[2] * m[15] - 
+              m[9]  * m[3] * m[14] - 
+              m[13] * m[2] * m[11] + 
+              m[13] * m[3] * m[10];
+
+    inv[5] = m[0]  * m[10] * m[15] - 
+             m[0]  * m[11] * m[14] - 
+             m[8]  * m[2] * m[15] + 
+             m[8]  * m[3] * m[14] + 
+             m[12] * m[2] * m[11] - 
+             m[12] * m[3] * m[10];
+
+    inv[9] = -m[0]  * m[9] * m[15] + 
+              m[0]  * m[11] * m[13] + 
+              m[8]  * m[1] * m[15] - 
+              m[8]  * m[3] * m[13] - 
+              m[12] * m[1] * m[11] + 
+              m[12] * m[3] * m[9];
+
+    inv[13] = m[0]  * m[9] * m[14] - 
+              m[0]  * m[10] * m[13] - 
+              m[8]  * m[1] * m[14] + 
+              m[8]  * m[2] * m[13] + 
+              m[12] * m[1] * m[10] - 
+              m[12] * m[2] * m[9];
+
+    inv[2] = m[1]  * m[6] * m[15] - 
+             m[1]  * m[7] * m[14] - 
+             m[5]  * m[2] * m[15] + 
+             m[5]  * m[3] * m[14] + 
+             m[13] * m[2] * m[7] - 
+             m[13] * m[3] * m[6];
+
+    inv[6] = -m[0]  * m[6] * m[15] + 
+              m[0]  * m[7] * m[14] + 
+              m[4]  * m[2] * m[15] - 
+              m[4]  * m[3] * m[14] - 
+              m[12] * m[2] * m[7] + 
+              m[12] * m[3] * m[6];
+
+    inv[10] = m[0]  * m[5] * m[15] - 
+              m[0]  * m[7] * m[13] - 
+              m[4]  * m[1] * m[15] + 
+              m[4]  * m[3] * m[13] + 
+              m[12] * m[1] * m[7] - 
+              m[12] * m[3] * m[5];
+
+    inv[14] = -m[0]  * m[5] * m[14] + 
+               m[0]  * m[6] * m[13] + 
+               m[4]  * m[1] * m[14] - 
+               m[4]  * m[2] * m[13] - 
+               m[12] * m[1] * m[6] + 
+               m[12] * m[2] * m[5];
+
+    inv[3] = -m[1] * m[6] * m[11] + 
+              m[1] * m[7] * m[10] + 
+              m[5] * m[2] * m[11] - 
+              m[5] * m[3] * m[10] - 
+              m[9] * m[2] * m[7] + 
+              m[9] * m[3] * m[6];
+
+    inv[7] = m[0] * m[6] * m[11] - 
+             m[0] * m[7] * m[10] - 
+             m[4] * m[2] * m[11] + 
+             m[4] * m[3] * m[10] + 
+             m[8] * m[2] * m[7] - 
+             m[8] * m[3] * m[6];
+
+    inv[11] = -m[0] * m[5] * m[11] + 
+               m[0] * m[7] * m[9] + 
+               m[4] * m[1] * m[11] - 
+               m[4] * m[3] * m[9] - 
+               m[8] * m[1] * m[7] + 
+               m[8] * m[3] * m[5];
+
+    inv[15] = m[0] * m[5] * m[10] - 
+              m[0] * m[6] * m[9] - 
+              m[4] * m[1] * m[10] + 
+              m[4] * m[2] * m[9] + 
+              m[8] * m[1] * m[6] - 
+              m[8] * m[2] * m[5];
+
+    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+    det = 1.0 / det;
+
+    for (i = 0; i < 16; i++){
+      invOut[i] = inv[i] * det;
+    }
+
+ //   return 0;
+
+}
+
+double MatrixDeterminant(const double m[16])
+{
+    double inv[16], det;
+    int i;
+
+    inv[0] = m[5]  * m[10] * m[15] - 
+             m[5]  * m[11] * m[14] - 
+             m[9]  * m[6]  * m[15] + 
+             m[9]  * m[7]  * m[14] +
+             m[13] * m[6]  * m[11] - 
+             m[13] * m[7]  * m[10];
+
+    inv[4] = -m[4]  * m[10] * m[15] + 
+              m[4]  * m[11] * m[14] + 
+              m[8]  * m[6]  * m[15] - 
+              m[8]  * m[7]  * m[14] - 
+              m[12] * m[6]  * m[11] + 
+              m[12] * m[7]  * m[10];
+
+    inv[8] = m[4]  * m[9] * m[15] - 
+             m[4]  * m[11] * m[13] - 
+             m[8]  * m[5] * m[15] + 
+             m[8]  * m[7] * m[13] + 
+             m[12] * m[5] * m[11] - 
+             m[12] * m[7] * m[9];
+
+    inv[12] = -m[4]  * m[9] * m[14] + 
+               m[4]  * m[10] * m[13] +
+               m[8]  * m[5] * m[14] - 
+               m[8]  * m[6] * m[13] - 
+               m[12] * m[5] * m[10] + 
+               m[12] * m[6] * m[9];
+
+    inv[1] = -m[1]  * m[10] * m[15] + 
+              m[1]  * m[11] * m[14] + 
+              m[9]  * m[2] * m[15] - 
+              m[9]  * m[3] * m[14] - 
+              m[13] * m[2] * m[11] + 
+              m[13] * m[3] * m[10];
+
+    inv[5] = m[0]  * m[10] * m[15] - 
+             m[0]  * m[11] * m[14] - 
+             m[8]  * m[2] * m[15] + 
+             m[8]  * m[3] * m[14] + 
+             m[12] * m[2] * m[11] - 
+             m[12] * m[3] * m[10];
+
+    inv[9] = -m[0]  * m[9] * m[15] + 
+              m[0]  * m[11] * m[13] + 
+              m[8]  * m[1] * m[15] - 
+              m[8]  * m[3] * m[13] - 
+              m[12] * m[1] * m[11] + 
+              m[12] * m[3] * m[9];
+
+    inv[13] = m[0]  * m[9] * m[14] - 
+              m[0]  * m[10] * m[13] - 
+              m[8]  * m[1] * m[14] + 
+              m[8]  * m[2] * m[13] + 
+              m[12] * m[1] * m[10] - 
+              m[12] * m[2] * m[9];
+
+    inv[2] = m[1]  * m[6] * m[15] - 
+             m[1]  * m[7] * m[14] - 
+             m[5]  * m[2] * m[15] + 
+             m[5]  * m[3] * m[14] + 
+             m[13] * m[2] * m[7] - 
+             m[13] * m[3] * m[6];
+
+    inv[6] = -m[0]  * m[6] * m[15] + 
+              m[0]  * m[7] * m[14] + 
+              m[4]  * m[2] * m[15] - 
+              m[4]  * m[3] * m[14] - 
+              m[12] * m[2] * m[7] + 
+              m[12] * m[3] * m[6];
+
+    inv[10] = m[0]  * m[5] * m[15] - 
+              m[0]  * m[7] * m[13] - 
+              m[4]  * m[1] * m[15] + 
+              m[4]  * m[3] * m[13] + 
+              m[12] * m[1] * m[7] - 
+              m[12] * m[3] * m[5];
+
+    inv[14] = -m[0]  * m[5] * m[14] + 
+               m[0]  * m[6] * m[13] + 
+               m[4]  * m[1] * m[14] - 
+               m[4]  * m[2] * m[13] - 
+               m[12] * m[1] * m[6] + 
+               m[12] * m[2] * m[5];
+
+    inv[3] = -m[1] * m[6] * m[11] + 
+              m[1] * m[7] * m[10] + 
+              m[5] * m[2] * m[11] - 
+              m[5] * m[3] * m[10] - 
+              m[9] * m[2] * m[7] + 
+              m[9] * m[3] * m[6];
+
+    inv[7] = m[0] * m[6] * m[11] - 
+             m[0] * m[7] * m[10] - 
+             m[4] * m[2] * m[11] + 
+             m[4] * m[3] * m[10] + 
+             m[8] * m[2] * m[7] - 
+             m[8] * m[3] * m[6];
+
+    inv[11] = -m[0] * m[5] * m[11] + 
+               m[0] * m[7] * m[9] + 
+               m[4] * m[1] * m[11] - 
+               m[4] * m[3] * m[9] - 
+               m[8] * m[1] * m[7] + 
+               m[8] * m[3] * m[5];
+
+    inv[15] = m[0] * m[5] * m[10] - 
+              m[0] * m[6] * m[9] - 
+              m[4] * m[1] * m[10] + 
+              m[4] * m[2] * m[9] + 
+              m[8] * m[1] * m[6] - 
+              m[8] * m[2] * m[5];
+
+    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+    return det;
+
+}
+
 void matrix_print(const gsl_matrix * M)
 {
   // Get the dimension of the matrix.
@@ -48,6 +300,8 @@ gsl_matrix *invert_a_matrix(gsl_matrix *matrix, int size)
   gsl_permutation_free(p);
 
   return inv;
+  
+  gsl_matrix_free(inv);
 }
 
 double matrix_determinant(gsl_matrix *matrix, int size)
@@ -123,19 +377,20 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
   return cov_val;
 }
 
-double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *l2)
+double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *l2, int vel_variance_supplied)
+
 {
   double cov_val = 0.0;
   double expr = 0.0;
   double con = 0.0, con_new = 0.0;
   double sigma_square = PARAM[0], range = PARAM[1], smoothness = PARAM[2];
   double vel_mean_x = PARAM[3], vel_mean_y = PARAM[4];
-  double vel_variance_chol_11 = PARAM[5], vel_variance_chol_12 = PARAM[6], vel_variance_chol_22 = PARAM[7];
+  double vel_variance_chol_11 = 0.0, vel_variance_chol_12 = 0.0, vel_variance_chol_22 = 0.0;
   
-  double l1x_new, l1y_new, l2x_new, l2y_new, xlag, ylag, tlag;
-  double vel_variance11, vel_variance22, vel_variance12;
-  double vel_variance11_new, vel_variance22_new, vel_variance12_new;
-  double Inv_11, Inv_22, Inv_12, det;
+  double l1x_new = 0.0, l1y_new = 0.0, l2x_new = 0.0, l2y_new = 0.0, xlag = 0.0, ylag = 0.0, tlag =0.0;
+  double vel_variance11 = 0.0, vel_variance22 = 0.0, vel_variance12 = 0.0;
+  double vel_variance11_new = 0.0, vel_variance22_new = 0.0, vel_variance12_new = 0.0;
+  double Inv_11 = 0.0, Inv_22 = 0.0, Inv_12 = 0.0, det = 0.0;
 
   con = pow(2,(smoothness - 1)) * tgamma(smoothness);
   con = 1.0/con;
@@ -149,9 +404,23 @@ double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *
   ylag = l1y_new - l2y_new;
   tlag = l1[2] - l2[2];
 
-  vel_variance11 = pow(vel_variance_chol_11, 2);
-  vel_variance22 = pow(vel_variance_chol_12, 2) + pow(vel_variance_chol_22, 2);
-  vel_variance12 = vel_variance_chol_11 * vel_variance_chol_12;
+  if(vel_variance_supplied == 0){
+
+    vel_variance_chol_11 = PARAM[5]; 
+    vel_variance_chol_12 = PARAM[6];
+    vel_variance_chol_22 = PARAM[7];
+
+    vel_variance11 = pow(vel_variance_chol_11, 2);
+    vel_variance22 = pow(vel_variance_chol_12, 2) + pow(vel_variance_chol_22, 2);
+    vel_variance12 = vel_variance_chol_11 * vel_variance_chol_12;
+
+  }else if(vel_variance_supplied == 1){
+
+    vel_variance11 = PARAM[5]; 
+    vel_variance12 = PARAM[6];
+    vel_variance22 = PARAM[7];
+
+  }
 
   vel_variance11_new = 1 + vel_variance11 * pow(tlag, 2);
   vel_variance22_new = 1 + vel_variance22 * pow(tlag, 2);
@@ -248,6 +517,223 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
   double expr = 0.0, det = 0.0;
   double con = 0.0, con_new = 0.0;
   double sigma_square = 0.0, range = PARAM[2], smoothness = 0.0;
+  double hlag[2];
+  double vel_mean_marginal[2], vel_mean[4], vel_mean_new[2];
+  double T_matrix[8], T_matrix_squared[16];
+  double param_vector[8];
+
+  double vel_variance_marginal[3];
+  double vel_variance_temp[16], vel_variance[16], vel_variance_inv[16], vel_variance_new[16], vel_variance_new_inv[16], denom[16];
+  double vel_variance_new2[8], vel_variance_new3[4], vel_variance_new4[4];
+
+  double sum = 0.0, xlag = 0.0, ylag = 0.0;
+  double Inv_11 = 0.0, Inv_22 = 0.0, Inv_12 = 0.0;
+
+  int i, j, k, t1, t2, variable1, variable2;
+
+  hlag[0] = l1[0] - l2[0];
+  hlag[1] = l1[1] - l2[1];
+
+  t1 = l1[2];
+  t2 = l2[2];
+    
+  variable1 = l1[3];
+  variable2 = l2[3];
+
+  vel_variance_temp[0] = pow(PARAM[10], 2);
+  vel_variance_temp[5] = pow(PARAM[11], 2) + pow(PARAM[14], 2);
+  vel_variance_temp[10] = pow(PARAM[12], 2) + pow(PARAM[15], 2) + pow(PARAM[17], 2);
+  vel_variance_temp[15] = pow(PARAM[13], 2) + pow(PARAM[16], 2) + pow(PARAM[18], 2) + pow(PARAM[19], 2);
+
+  vel_variance_temp[1] = vel_variance_temp[4] = PARAM[10] * PARAM[11];
+  vel_variance_temp[2] = vel_variance_temp[8] = PARAM[10] * PARAM[12];
+  vel_variance_temp[3] = vel_variance_temp[12] = PARAM[10] * PARAM[13];
+
+  vel_variance_temp[6] = vel_variance_temp[9] = PARAM[11] * PARAM[12] + PARAM[14] * PARAM[15];
+  vel_variance_temp[7] = vel_variance_temp[13] = PARAM[11] * PARAM[13] + PARAM[14] * PARAM[16];
+
+  vel_variance_temp[11] = vel_variance_temp[14] = PARAM[12] * PARAM[13] + PARAM[15] * PARAM[16] + PARAM[17] * PARAM[18];
+
+  if(variable1 == variable2){
+
+    if(variable1 == 1){
+
+      sigma_square = PARAM[0];
+      smoothness = PARAM[3];
+      vel_mean_marginal[0] = PARAM[6];
+      vel_mean_marginal[1] = PARAM[7];
+      vel_variance_marginal[0] = vel_variance_temp[0]; 
+      vel_variance_marginal[1] = vel_variance_temp[1]; 
+      vel_variance_marginal[2] = vel_variance_temp[5]; 
+  
+    }else{
+
+      sigma_square = PARAM[1];
+      smoothness = PARAM[4];
+      vel_mean_marginal[0] = PARAM[8];
+      vel_mean_marginal[1] = PARAM[9];
+      vel_variance_marginal[0] = vel_variance_temp[10]; 
+      vel_variance_marginal[1] = vel_variance_temp[11]; 
+      vel_variance_marginal[2] = vel_variance_temp[15]; 
+  
+    }
+
+    param_vector[0] = sigma_square;
+    param_vector[1] = range;
+    param_vector[2] = smoothness;
+    param_vector[3] = vel_mean_marginal[0];
+    param_vector[4] = vel_mean_marginal[1];
+    param_vector[5] = vel_variance_marginal[0];
+    param_vector[6] = vel_variance_marginal[1];
+    param_vector[7] = vel_variance_marginal[2];
+
+    cov_val = univariate_matern_schlather_spacetime(param_vector, l1, l2, 1);
+
+  }else{
+
+    sigma_square = PARAM[5] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[3] + PARAM[4]);
+
+    if(variable1 == 1 & variable2 == 2){
+
+      vel_mean[0] = PARAM[6];
+      vel_mean[1] = PARAM[7];
+      vel_mean[2] = PARAM[8];
+      vel_mean[3] = PARAM[9];
+
+      for(i = 0; i < 4; i++){
+        for(j = 0; j < 4; j++){
+	  vel_variance[i * 4 + j] = vel_variance_temp[i * 4 + j];
+        }
+      }
+
+    }else if(variable1 == 2 & variable2 == 1){
+
+      vel_mean[0] = PARAM[8];
+      vel_mean[1] = PARAM[9];
+      vel_mean[2] = PARAM[6];
+      vel_mean[3] = PARAM[7];
+
+      vel_variance[0] = vel_variance_temp[10];
+      vel_variance[5] = vel_variance_temp[15];
+      vel_variance[10] = vel_variance_temp[0];
+      vel_variance[15] = vel_variance_temp[5];
+      vel_variance[1] = vel_variance[4] = vel_variance_temp[11];
+      vel_variance[2] = vel_variance[8] = vel_variance_temp[8];
+      vel_variance[3] = vel_variance[12] = vel_variance_temp[9];
+      vel_variance[6] = vel_variance[9] = vel_variance_temp[12];
+      vel_variance[7] = vel_variance[13] = vel_variance_temp[13];
+      vel_variance[11] = vel_variance[14] = vel_variance_temp[1];
+
+    }
+  
+    T_matrix[0] = T_matrix[5] = t1;
+    T_matrix[2] = T_matrix[7] = -t2;
+
+    T_matrix_squared[0] = T_matrix_squared[5] = pow(t1, 2);
+    T_matrix_squared[10] = T_matrix_squared[15] = pow(t2, 2);
+    T_matrix_squared[2] = T_matrix_squared[7] = T_matrix_squared[8] = T_matrix_squared[13] = -t1 * t2;
+    T_matrix_squared[1] = T_matrix_squared[3] = T_matrix_squared[4] = T_matrix_squared[6] = 0.0;
+    T_matrix_squared[9] = T_matrix_squared[11] = T_matrix_squared[12] = T_matrix_squared[14] = 0.0;
+   
+    InvertMatrix(vel_variance, vel_variance_inv);
+
+    for(i = 0; i < 4; i++){
+      for(j = 0; j < 4; j++){
+        vel_variance_new[i * 4 + j] = T_matrix_squared[i * 4 + j] + vel_variance_inv[i * 4 + j];
+      }
+    }
+
+    InvertMatrix(vel_variance_new, vel_variance_new_inv);
+
+    for(k = 0; k < 2; k++){
+      for(i = 0; i < 4; i++){
+        for(j = 0; j < 4; j++){
+          sum = sum + T_matrix[k * 4 + j] * vel_variance_new_inv[j * 4 + i];
+        }
+        vel_variance_new2[k * 4 + i] = sum;
+        sum = 0.0;
+      }
+    }
+
+    for(k = 0; k < 2; k++){
+      for(i = 0; i < 2; i++){
+        for(j = 0; j < 4; j++){
+          sum = sum + vel_variance_new2[k * 4 + j] * T_matrix[i * 4 + j];
+        }
+        vel_variance_new3[k * 2 + i] = sum;
+        sum = 0.0;
+      }
+    }
+
+    vel_variance_new4[0] = 1 - vel_variance_new3[0];
+    vel_variance_new4[1] = -vel_variance_new3[1];
+    vel_variance_new4[2] = -vel_variance_new3[2];
+    vel_variance_new4[3] = 1 - vel_variance_new3[3];
+
+    for(k = 0; k < 2; k++){
+      for(i = 0; i < 1; i++){
+        for(j = 0; j < 4; j++){
+          sum = sum + T_matrix[k * 4 + j] * vel_mean[i * 4 + j];
+        }
+        vel_mean_new[k + i] = sum;
+        sum = 0.0;
+      }
+    }
+
+    xlag = hlag[0] - vel_mean_new[0];
+    ylag = hlag[1] - vel_mean_new[1];
+
+    Inv_11 = vel_variance_new4[0];
+    Inv_12 = vel_variance_new4[1];
+    Inv_22 = vel_variance_new4[3];
+
+    expr = sqrt(pow(xlag, 2) * Inv_11 + 2 * xlag * ylag * Inv_12 + pow(ylag, 2) * Inv_22 ) / range;
+
+    for(k = 0; k < 4; k++){
+      for(i = 0; i < 4; i++){
+        for(j = 0; j < 4; j++){
+          sum = sum + vel_variance[k * 4 + j] * T_matrix_squared[j * 4 + i];
+        }
+        if(k == i){
+          denom[k * 4 + i] = 1 + sum;
+        }else{
+          denom[k * 4 + i] = sum;
+        }
+        sum = 0.0;
+      }
+    }
+
+    det = MatrixDeterminant(denom);
+
+    con = pow(2,(smoothness - 1)) * tgamma(smoothness);
+    con = 1.0/con;
+
+    con_new = sigma_square * con / sqrt(det);
+
+    if(expr == 0){
+      cov_val = sigma_square / sqrt(det);
+    }else{
+      cov_val = con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
+    }
+
+  }
+
+  //if(l1[0] == 0 & l1[1] == 0 & t1 == 0){
+//    matrix_print(denom_temp);    
+    //printf("expr: %f; det: %f \n", expr, det);
+  //}
+
+  return cov_val;
+
+}
+
+double ORIG_bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0, det = 0.0;
+  double con = 0.0, con_new = 0.0;
+  double sigma_square = 0.0, range = PARAM[2], smoothness = 0.0;
   int i, j, ulag, t1, t2, variable1, variable2;
 
   t1 = l1[2];
@@ -257,7 +743,6 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
   variable1 = l1[3];
   variable2 = l2[3];
 
-  gsl_matrix *vel_mean = gsl_matrix_alloc(4, 1);
   gsl_matrix *vel_variance_chol = gsl_matrix_alloc(4, 4);
   gsl_matrix *vel_variance_temp = gsl_matrix_alloc(4, 4);
   gsl_matrix *hlag = gsl_matrix_alloc(2, 1);
@@ -265,29 +750,11 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
   gsl_matrix *expr_temp1 = gsl_matrix_alloc(1, 2); 
   gsl_matrix *expr_temp2 = gsl_matrix_alloc(1, 1); 
 
-  gsl_matrix *vel_mean_marginal = gsl_matrix_alloc(2, 1);
-  gsl_matrix *vel_variance_marginal = gsl_matrix_alloc(2, 2);
-  gsl_matrix *vel_variance_new = gsl_matrix_alloc(2, 2);
-  gsl_matrix *vel_variance_inverse = gsl_matrix_alloc(2, 2);
-
-  gsl_matrix *vel_mean_marginal1 = gsl_matrix_alloc(2, 1);
-  gsl_matrix *vel_mean_marginal2 = gsl_matrix_alloc(2, 1);
-  gsl_matrix *vel_variance = gsl_matrix_alloc(4, 4);
-  gsl_matrix *vel_variance_copy = gsl_matrix_alloc(4, 4);
-  gsl_matrix *T_matrix = gsl_matrix_alloc(2, 4);
-  gsl_matrix *vel_mean_cross = gsl_matrix_alloc(2, 1);
-  gsl_matrix *T_matrix_squared = gsl_matrix_alloc(4, 4);
-  gsl_matrix *vel_variance_inverse_cross = gsl_matrix_alloc(4, 4);    
-  gsl_matrix *vel_variance_new_quasi_temp1 = gsl_matrix_alloc(4, 4);    
-  gsl_matrix *vel_variance_new_quasi_temp2 = gsl_matrix_alloc(4, 4); 
-  gsl_matrix *vel_variance_new_quasi_temp3 = gsl_matrix_alloc(2, 4); 
-  gsl_matrix *vel_variance_new_quasi_temp4 = gsl_matrix_alloc(2, 2); 
-  gsl_matrix *vel_variance_new_quasi = gsl_matrix_alloc(2, 2);
-  gsl_matrix *denom = gsl_matrix_alloc(4, 4); 
-  gsl_matrix *denom_temp = gsl_matrix_alloc(4, 4); 
-
-
   gsl_matrix_set_zero(vel_variance_chol);
+  gsl_matrix_set_zero(vel_variance_temp);
+  gsl_matrix_set_zero(hlag);
+  gsl_matrix_set_zero(expr_temp1);
+  gsl_matrix_set_zero(expr_temp2);
 
   unsigned int count = 0;
   for(i = 0; i < 4; i++){
@@ -304,33 +771,43 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
 
   if(variable1 == variable2){
 
+    gsl_matrix *vel_mean_marginal = gsl_matrix_alloc(2, 1);
+    gsl_matrix *vel_variance_new = gsl_matrix_alloc(2, 2);
+    gsl_matrix *vel_variance_inverse = gsl_matrix_alloc(2, 2);
+    gsl_matrix *vel_variance_marginal = gsl_matrix_alloc(2, 2);
+  
+    gsl_matrix_set_zero(vel_mean_marginal);
+    gsl_matrix_set_zero(vel_variance_new);
+    gsl_matrix_set_zero(vel_variance_inverse);
+    gsl_matrix_set_zero(vel_variance_marginal);
+
     if(variable1 == 1){
 
       sigma_square = PARAM[0];
       smoothness = PARAM[3];
 
-      //gsl_matrix_view vel_mean_sub = gsl_matrix_submatrix(vel_mean, 0, 0, 2, 1);
-      gsl_matrix_view vel_variance_sub = gsl_matrix_submatrix(vel_variance_temp, 0, 0, 2, 2);
-
-      //vel_mean_marginal = &vel_mean_sub.matrix;
       for(j = 0; j < 2; j++){
         gsl_matrix_set(vel_mean_marginal, j, 0, PARAM[6 + j]); 
       }
-      vel_variance_marginal = &vel_variance_sub.matrix;
+
+      gsl_matrix_set(vel_variance_marginal, 0, 0, gsl_matrix_get(vel_variance_temp, 0, 0));
+      gsl_matrix_set(vel_variance_marginal, 0, 1, gsl_matrix_get(vel_variance_temp, 0, 1));
+      gsl_matrix_set(vel_variance_marginal, 1, 0, gsl_matrix_get(vel_variance_temp, 1, 0));
+      gsl_matrix_set(vel_variance_marginal, 1, 1, gsl_matrix_get(vel_variance_temp, 1, 1));
 
     }else{
 
       sigma_square = PARAM[1];
       smoothness = PARAM[4];
 
-      //gsl_matrix_view vel_mean_sub = gsl_matrix_submatrix(vel_mean, 2, 0, 2, 1);
-      gsl_matrix_view vel_variance_sub = gsl_matrix_submatrix(vel_variance_temp, 2, 2, 2, 2);
-
-      //vel_mean_marginal = &vel_mean_sub.matrix;
       for(j = 0; j < 2; j++){
         gsl_matrix_set(vel_mean_marginal, j, 0, PARAM[8 + j]); 
       }
-      vel_variance_marginal = &vel_variance_sub.matrix;
+
+      gsl_matrix_set(vel_variance_marginal, 0, 0, gsl_matrix_get(vel_variance_temp, 2, 2));
+      gsl_matrix_set(vel_variance_marginal, 0, 1, gsl_matrix_get(vel_variance_temp, 2, 3));
+      gsl_matrix_set(vel_variance_marginal, 1, 0, gsl_matrix_get(vel_variance_temp, 3, 2));
+      gsl_matrix_set(vel_variance_marginal, 1, 1, gsl_matrix_get(vel_variance_temp, 3, 3));
 
     }
 
@@ -351,8 +828,50 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, expr_temp1, hlag, 0.0, expr_temp2);
 
     expr = sqrt(gsl_matrix_get(expr_temp2, 0, 0)) / range;
- 
+
+    gsl_matrix_free(vel_mean_marginal);
+    gsl_matrix_free(vel_variance_inverse);
+    gsl_matrix_free(vel_variance_new);
+    gsl_matrix_free(vel_variance_marginal);
+
   }else{
+
+    gsl_matrix *vel_mean_marginal1 = gsl_matrix_alloc(2, 1);
+    gsl_matrix *vel_mean_marginal2 = gsl_matrix_alloc(2, 1);
+
+    gsl_matrix *vel_variance = gsl_matrix_alloc(4, 4);
+    gsl_matrix *vel_mean = gsl_matrix_alloc(4, 1);
+
+    gsl_matrix *T_matrix = gsl_matrix_alloc(2, 4);
+    gsl_matrix *vel_mean_cross = gsl_matrix_alloc(2, 1);
+    gsl_matrix *T_matrix_squared = gsl_matrix_alloc(4, 4);
+    gsl_matrix *vel_variance_copy = gsl_matrix_alloc(4, 4);
+    gsl_matrix *vel_variance_inverse_cross = gsl_matrix_alloc(4, 4);    
+    gsl_matrix *vel_variance_new_quasi_temp1 = gsl_matrix_alloc(4, 4);    
+    gsl_matrix *vel_variance_new_quasi_temp2 = gsl_matrix_alloc(4, 4); 
+    gsl_matrix *vel_variance_new_quasi_temp3 = gsl_matrix_alloc(2, 4); 
+    gsl_matrix *vel_variance_new_quasi_temp4 = gsl_matrix_alloc(2, 2); 
+    gsl_matrix *vel_variance_new_quasi = gsl_matrix_alloc(2, 2);
+    gsl_matrix *denom = gsl_matrix_alloc(4, 4); 
+    gsl_matrix *denom_temp = gsl_matrix_alloc(4, 4); 
+
+
+    gsl_matrix_set_zero(vel_mean_marginal1);
+    gsl_matrix_set_zero(vel_mean_marginal2);
+    gsl_matrix_set_zero(vel_variance);
+    gsl_matrix_set_zero(vel_mean);
+    gsl_matrix_set_zero(T_matrix);
+    gsl_matrix_set_zero(vel_mean_cross);
+    gsl_matrix_set_zero(T_matrix_squared);
+    gsl_matrix_set_zero(vel_variance_copy);
+    gsl_matrix_set_zero(vel_variance_inverse_cross);
+    gsl_matrix_set_zero(vel_variance_new_quasi_temp1);
+    gsl_matrix_set_zero(vel_variance_new_quasi_temp2);
+    gsl_matrix_set_zero(vel_variance_new_quasi_temp3);
+    gsl_matrix_set_zero(vel_variance_new_quasi_temp4);
+    gsl_matrix_set_zero(vel_variance_new_quasi);
+    gsl_matrix_set_zero(denom);
+    gsl_matrix_set_zero(denom_temp);
 
     sigma_square = PARAM[5] * sqrt(PARAM[0] * PARAM[1]);
     smoothness = 0.5 * (PARAM[3] + PARAM[4]);
@@ -400,14 +919,10 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
       gsl_matrix_set(vel_variance, 3, 1, gsl_matrix_get(vel_variance_temp, 1, 3));
     }
 
-
     gsl_matrix_set(vel_mean, 0, 0, gsl_matrix_get(vel_mean_marginal1, 0, 0)); 
     gsl_matrix_set(vel_mean, 1, 0, gsl_matrix_get(vel_mean_marginal1, 1, 0)); 
     gsl_matrix_set(vel_mean, 2, 0, gsl_matrix_get(vel_mean_marginal2, 0, 0)); 
     gsl_matrix_set(vel_mean, 3, 0, gsl_matrix_get(vel_mean_marginal2, 1, 0)); 
-
-
-    gsl_matrix_set_zero(T_matrix);
 
     gsl_matrix_set(T_matrix, 0, 0, t1);
     gsl_matrix_set(T_matrix, 1, 1, t1);
@@ -422,14 +937,6 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
 
     gsl_matrix_memcpy(vel_variance_copy, vel_variance);
     vel_variance_inverse_cross = invert_a_matrix(vel_variance_copy, 4);   
-
-  if(t1 == 0 & t2 == 1 & l1[0] == 0 & l1[1] == 0){
-    matrix_print(vel_variance_inverse_cross);    
-    //printf("expr: %f; det: %f \n", expr, det);
-  }
-
-
-      //matrix_print(denom_temp);      
 
     gsl_matrix_memcpy(vel_variance_new_quasi_temp1, T_matrix_squared);
 
@@ -453,16 +960,47 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
 
     gsl_matrix_set_identity(denom);
 
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, vel_variance, T_matrix_squared, 0.0, denom_temp);
+//  if(l1[0] == 0 & l1[1] == 0 & t1 == 0){
+//    matrix_print(denom_temp);    
+//    printf("expr: %f; det: %f \n", expr, det);
+//  }
 
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, vel_variance, T_matrix_squared, 0.0, denom_temp);
 
     gsl_matrix_add(denom, denom_temp);
 
     det = matrix_determinant(denom, 4);
 
+
+    gsl_matrix_free(vel_mean_marginal1);
+    gsl_matrix_free(vel_mean_marginal2);
+
+    gsl_matrix_free(vel_mean);
+    gsl_matrix_free(vel_variance);
+
+    gsl_matrix_free(T_matrix);
+    gsl_matrix_free(vel_mean_cross);
+    gsl_matrix_free(T_matrix_squared);
+    gsl_matrix_free(vel_variance_copy);
+    gsl_matrix_free(vel_variance_inverse_cross);
+    gsl_matrix_free(vel_variance_new_quasi_temp1);
+    gsl_matrix_free(vel_variance_new_quasi_temp2);
+    gsl_matrix_free(vel_variance_new_quasi_temp3);
+    gsl_matrix_free(vel_variance_new_quasi_temp4);
+    gsl_matrix_free(vel_variance_new_quasi);
+    gsl_matrix_free(denom);
+    gsl_matrix_free(denom_temp);
+
   }
 
-      //printf("t1: %d; t2: %d; var1: %d; var2: %d \n", t1, t2, variable1, variable2);
+  gsl_matrix_free(vel_variance_chol);
+  gsl_matrix_free(vel_variance_temp);
+  gsl_matrix_free(hlag);
+
+  gsl_matrix_free(expr_temp1);
+  gsl_matrix_free(expr_temp2);
+
+
   con = pow(2,(smoothness - 1)) * tgamma(smoothness);
   con = 1.0/con;
 
@@ -474,34 +1012,6 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
     cov_val = con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
   }
   return cov_val;
-
-  gsl_matrix_free(vel_mean);
-  gsl_matrix_free(vel_variance_chol);
-  gsl_matrix_free(vel_variance_temp);
-  gsl_matrix_free(hlag);
-  gsl_matrix_free(expr_temp1);
-  gsl_matrix_free(expr_temp2);
-
-  gsl_matrix_free(vel_mean_marginal);
-  gsl_matrix_free(vel_variance_marginal);
-  gsl_matrix_free(vel_variance_new);
-  gsl_matrix_free(vel_variance_inverse);
-
-  gsl_matrix_free(vel_mean_marginal1);
-  gsl_matrix_free(vel_mean_marginal2);
-  gsl_matrix_free(vel_variance);
-  gsl_matrix_free(vel_variance_copy);
-  gsl_matrix_free(T_matrix);
-  gsl_matrix_free(vel_mean_cross);
-  gsl_matrix_free(T_matrix_squared);
-  gsl_matrix_free(vel_variance_inverse_cross);
-  gsl_matrix_free(vel_variance_new_quasi_temp1);
-  gsl_matrix_free(vel_variance_new_quasi_temp2);
-  gsl_matrix_free(vel_variance_new_quasi_temp3);
-  gsl_matrix_free(vel_variance_new_quasi_temp4);
-  gsl_matrix_free(vel_variance_new_quasi);
-  gsl_matrix_free(denom);
-  gsl_matrix_free(denom_temp);
 
 }
 
@@ -613,7 +1123,7 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
   if(*MODEL_NUM == 1){
     *gi = univariate_matern_spatial(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 2){
-    *gi = univariate_matern_schlather_spacetime(PARAM_VECTOR, L1, L2);
+    *gi = univariate_matern_schlather_spacetime(PARAM_VECTOR, L1, L2, 0);
   }else if(*MODEL_NUM == 3){
     *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 4){
