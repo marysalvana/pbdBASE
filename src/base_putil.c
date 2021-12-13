@@ -378,7 +378,6 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
 }
 
 double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *l2, int vel_variance_supplied)
-
 {
   double cov_val = 0.0;
   double expr = 0.0;
@@ -451,9 +450,13 @@ double bivariate_matern_salvana_single_advection_spacetime(double *PARAM, double
   double expr = 0.0;
   double con = 0.0, con_new = 0.0;
   double sigma_square = 0.0, range = PARAM[2], smoothness = 0.0;
+  int variable1, variable2;
 
-  if(l1[3] == l2[3]){
-    if(l1[3] == 1){
+  variable1 = l1[3];
+  variable2 = l2[3];
+
+  if(variable1 == variable2){
+    if(variable1 == 1){
       sigma_square = PARAM[0];
       smoothness = PARAM[3];
     }else{
@@ -843,6 +846,80 @@ double bivariate_lmc_salvana_spacetime(double *PARAM, double *l1, double *l2)
   return cov_val;
 }
 
+double univariate_matern_gneiting_spacetime(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0, con_new = 0.0;
+  double sigma_square = PARAM[0], range_space = PARAM[1], smoothness = PARAM[2];
+  double range_time = PARAM[3], alpha = PARAM[4], beta = PARAM[5], delta = PARAM[6];
+  
+  double xlag = 0.0, ylag = 0.0, tlag = 0.0, denom = 0.0;
+
+  con = pow(2,(smoothness - 1)) * tgamma(smoothness);
+  con = 1.0/con;
+
+  xlag = l1[0] - l2[0];
+  ylag = l1[1] - l2[1];
+  tlag = l1[2] - l2[2];
+
+  denom = pow(abs(tlag), 2 * alpha) / range_time + 1;
+
+  expr = sqrt(pow(xlag, 2) + pow(ylag, 2)) / range_space;
+
+  expr = expr / pow(denom, beta / 2);
+
+  con_new = sigma_square * con / pow(denom, delta + beta);
+
+  if(expr == 0){
+    cov_val = sigma_square / pow(denom, delta + beta);
+  }else{
+    cov_val = con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
+  }
+  return cov_val;
+}
+
+double bivariate_matern_bourotte_spacetime(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0, con_new = 0.0;
+  double sigma_square = 0.0, range_space = PARAM[2], smoothness = 0.0;
+  double range_time = PARAM[6], alpha = PARAM[7], beta = PARAM[8], delta = PARAM[9];
+  double paramvec[7];
+  double xlag = 0.0, ylag = 0.0, tlag = 0.0, denom = 0.0;
+
+  int variable1, variable2;
+
+  variable1 = l1[3];
+  variable2 = l2[3];
+
+  if(variable1 == variable2){
+    if(variable1 == 1){
+      sigma_square = PARAM[0];
+      smoothness = PARAM[3];
+    }else{
+      sigma_square = PARAM[1];
+      smoothness = PARAM[4];
+    }
+  }else{
+    sigma_square = PARAM[5] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[3] + PARAM[4]);
+  }
+
+  paramvec[0] = sigma_square;
+  paramvec[1] = range_space;
+  paramvec[2] = smoothness;
+  paramvec[3] = range_time;
+  paramvec[4] = alpha;
+  paramvec[5] = beta;
+  paramvec[6] = delta;
+
+  cov_val = univariate_matern_gneiting_spacetime(paramvec, l1, l2);
+
+  return cov_val;
+}
+
 double univariate_deformation_matern_salvana_frozen_spacetime(double *PARAM, double *l1, double *l2)
 {
   double cov_val = 0.0;
@@ -918,6 +995,10 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
     *gi = univariate_deformation_matern_salvana_frozen_spacetime(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 8){
     *gi = bivariate_lmc_salvana_spacetime(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 9){
+    *gi = univariate_matern_gneiting_spacetime(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 10){
+    *gi = bivariate_matern_bourotte_spacetime(PARAM_VECTOR, L1, L2);
   }
 }
 
