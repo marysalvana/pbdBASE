@@ -57,7 +57,7 @@ int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean,
       gsl_vector_set(result, k, gsl_ran_ugaussian(r));
     }
 
-    gsl_blas_dtrmv(CblasLower, CblasNoTrans, CblasNonUnit, work, result );
+    gsl_blas_dtrmv(CblasLower, CblasNoTrans, CblasNonUnit, var, result );
     gsl_vector_add(result,mean);
     gsl_matrix_free(work);
     return 0;
@@ -558,12 +558,12 @@ double univariate_matern_numerical_lagrangian_spacetime(double *PARAM, double *l
     }
   }
 
-  return cov_val / 100;
-
   gsl_rng_free(r);
   gsl_vector_free(vel_mean);
   gsl_matrix_free(vel_variance);
   gsl_vector_free(result);
+
+  return cov_val / 100;
 }
 
 double bivariate_matern_salvana_single_advection_spacetime(double *PARAM, double *l1, double *l2)
