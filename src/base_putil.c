@@ -18,6 +18,51 @@
 // R.h and Rinternals.h needs to be included after Rconfig.h
 #include "pbdBASE.h"
 
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+
+void matrix_print(const gsl_matrix * M)
+{
+  // Get the dimension of the matrix.
+  int rows = M->size1;
+  int cols = M->size2;
+
+  // Now print out the data in a square format.
+  for(int i = 0; i < rows; i++){
+    for(int j = 0; j < cols; j++){
+      printf(" %f ", gsl_matrix_get(M, i, j));
+    }
+    printf("\n");
+  } 
+}
+
+
+int rmvnorm(const gsl_rng *r, const int n, const gsl_vector *mean, 
+		const gsl_matrix *var, gsl_vector *result){
+    /* multivariate normal distribution random number generator */
+    /*
+ *      *	n	dimension of the random vetor
+ *           *	mean	vector of means of size n
+ *                *	var	variance matrix of dimension n x n
+ *                     *	result	output variable with a sigle random vector normal distribution generation
+ *                          */
+    int k;
+    gsl_matrix *work = gsl_matrix_alloc(n,n);
+
+    gsl_matrix_memcpy(work,var);
+
+    gsl_linalg_cholesky_decomp(work);
+
+    for(k=0; k<n; k++){
+      gsl_vector_set(result, k, gsl_ran_ugaussian(r));
+    }
+
+    gsl_blas_dtrmv(CblasLower, CblasNoTrans, CblasNonUnit, work, result );
+    gsl_vector_add(result,mean);
+    gsl_matrix_free(work);
+    return 0;
+}
+
 void InvertMatrix(const double m[16], double invOut[16])
 {
     double inv[16], det;
@@ -270,21 +315,6 @@ double MatrixDeterminant(const double m[16])
 
 }
 
-void matrix_print(const gsl_matrix * M)
-{
-  // Get the dimension of the matrix.
-  int rows = M->size1;
-  int cols = M->size2;
-
-  // Now print out the data in a square format.
-  for(int i = 0; i < rows; i++){
-    for(int j = 0; j < cols; j++){
-      printf(" %f ", gsl_matrix_get(M, i, j));
-    }
-    printf("\n");
-  } 
-}
-
 gsl_matrix *invert_a_matrix(gsl_matrix *matrix, int size)
 {
   gsl_permutation *p = gsl_permutation_alloc(size);
@@ -442,6 +472,98 @@ double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *
     cov_val = con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
   }
   return cov_val;
+}
+
+double univariate_matern_numerical_lagrangian_spacetime(double *PARAM, double *l1, double *l2, int vel_variance_supplied)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0, con_new = 0.0;
+  double sigma_square = PARAM[0], range = PARAM[1], smoothness = PARAM[2];
+  double vel_mean_x = PARAM[3], vel_mean_y = PARAM[4], vel_x = 0.0, vel_y = 0.0;
+  double vel_variance_chol_11 = 0.0, vel_variance_chol_12 = 0.0, vel_variance_chol_22 = 0.0;
+  
+  double l1x_new = 0.0, l1y_new = 0.0, l2x_new = 0.0, l2y_new = 0.0, xlag = 0.0, ylag = 0.0, tlag = 0.0;
+  double vel_variance11 = 0.0, vel_variance22 = 0.0, vel_variance12 = 0.0;
+
+  unsigned long int seed = 0;
+
+  const gsl_rng_type *T;
+  gsl_rng *r; 
+
+  gsl_rng_env_setup();
+
+  T = gsl_rng_default;
+  r = gsl_rng_alloc(T);
+
+  con = pow(2,(smoothness - 1)) * tgamma(smoothness);
+  con = 1.0/con;
+
+  gsl_vector *result = gsl_vector_alloc(2);
+  gsl_vector *vel_mean = gsl_vector_alloc(2);
+  gsl_matrix *vel_variance = gsl_matrix_alloc(2, 2);
+
+  gsl_matrix_set_zero(vel_variance);
+
+  gsl_vector_set(vel_mean, 0, vel_mean_x); 
+  gsl_vector_set(vel_mean, 1, vel_mean_y); 
+
+  if(vel_variance_supplied == 0){
+
+    vel_variance_chol_11 = PARAM[5]; 
+    vel_variance_chol_12 = PARAM[6];
+    vel_variance_chol_22 = PARAM[7];
+
+    vel_variance11 = pow(vel_variance_chol_11, 2);
+    vel_variance22 = pow(vel_variance_chol_12, 2) + pow(vel_variance_chol_22, 2);
+    vel_variance12 = vel_variance_chol_11 * vel_variance_chol_12;
+
+  }else if(vel_variance_supplied == 1){
+
+    vel_variance11 = PARAM[5]; 
+    vel_variance12 = PARAM[6];
+    vel_variance22 = PARAM[7];
+
+  }
+
+  gsl_matrix_set(vel_variance, 0, 0, vel_variance11); 
+  gsl_matrix_set(vel_variance, 0, 1, vel_variance12); 
+  gsl_matrix_set(vel_variance, 1, 0, vel_variance12); 
+  gsl_matrix_set(vel_variance, 1, 1, vel_variance22); 
+
+  for(seed=0; seed<100; seed++){
+
+    gsl_rng_default_seed = seed + 1;
+    rmvnorm(r, 2, vel_mean, vel_variance, result);
+
+    vel_x = gsl_vector_get(result, 0);
+    vel_y = gsl_vector_get(result, 1);
+
+    l1x_new = l1[0] - vel_x * l1[2];
+    l1y_new = l1[1] - vel_y * l1[2];
+    l2x_new = l2[0] - vel_x * l2[2];
+    l2y_new = l2[1] - vel_y * l2[2];
+
+    xlag = l1x_new - l2x_new;
+    ylag = l1y_new - l2y_new;
+
+    expr = sqrt(pow(xlag, 2) + pow(ylag, 2)) / range;
+
+    con_new = sigma_square * con;
+
+    if(expr == 0){
+      cov_val += sigma_square;
+    }else{
+      cov_val += con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
+    }
+  }
+
+  return cov_val / 100;
+
+  gsl_rng_free(r);
+  gsl_vector_free(vel_mean);
+  gsl_matrix_free(vel_variance);
+  gsl_vector_free(result);
 }
 
 double bivariate_matern_salvana_single_advection_spacetime(double *PARAM, double *l1, double *l2)
@@ -855,7 +977,7 @@ double univariate_matern_gneiting_spacetime(double *PARAM, double *l1, double *l
   double range_time = PARAM[3], alpha = PARAM[4], beta = PARAM[5], delta = PARAM[6];
   
   double xlag = 0.0, ylag = 0.0, tlag = 0.0, denom = 0.0;
-
+  
   con = pow(2,(smoothness - 1)) * tgamma(smoothness);
   con = 1.0/con;
 
@@ -999,6 +1121,8 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
     *gi = univariate_matern_gneiting_spacetime(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 10){
     *gi = bivariate_matern_bourotte_spacetime(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 11){
+    *gi = univariate_matern_numerical_lagrangian_spacetime(PARAM_VECTOR, L1, L2, 0);
   }
 }
 
