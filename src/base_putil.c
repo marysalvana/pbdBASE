@@ -1098,10 +1098,30 @@ double univariate_deformation_matern_salvana_frozen_spacetime(double *PARAM, dou
   return cov_val;
 }
 
+double basis_function(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0, expr = 0.0;
+  double xlag, ylag;
+
+  xlag = l1[0] - l2[0];
+  ylag = l2[1] - l2[1];
+
+  expr = sqrt(pow(xlag, 2) + pow(ylag, 2));
+
+  if(expr == 0){
+    cov_val = 0;
+  }else{
+    cov_val = pow(expr, 2) * log(expr);
+  }
+  return cov_val;
+}
+
 void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, double *gi)
 {
 
-  if(*MODEL_NUM == 1){
+  if(*MODEL_NUM == 0){
+    *gi = basis_function(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 1){
     *gi = univariate_matern_spatial(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 2){
     *gi = univariate_matern_schlather_spacetime(PARAM_VECTOR, L1, L2, 0);
