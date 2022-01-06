@@ -21,6 +21,51 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
+#define PI (3.141592653589793)
+#define earthRadiusKm 1 //6371.0
+
+// This function converts decimal degrees to radians
+
+static double deg2rad(double deg){
+    return (deg * PI / 180);
+}
+
+//  This function converts radians to decimal degrees
+
+static double rad2deg(double rad){
+    return (rad * 180 / PI);
+}
+
+/*
+* Returns the distance between two points on the Earth.
+* Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
+* @param lat1d Latitude of the first point in degrees
+* @param lon1d Longitude of the first point in degrees
+* @param lat2d Latitude of the second point in degrees
+* @param lon2d Longitude of the second point in degrees
+* @return The distance between the two points in kilometers
+*/
+
+static double distanceEarth(double lat1d, double lon1d, double lat2d, double lon2d) {
+    double lat1r, lon1r, lat2r, lon2r, u, v;
+    lat1r = deg2rad(lat1d);
+    lon1r = deg2rad(lon1d);
+    lat2r = deg2rad(lat2d);
+    lon2r = deg2rad(lon2d);
+    u = sin((lat2r - lat1r)/2);
+    v = sin((lon2r - lon1r)/2);
+    //return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+    return 2.0 * earthRadiusKm * sqrt(pow(u, 2) + cos(lat1r) * cos(lat2r) * pow(v, 2));
+}
+
+static double calculateDistance(double x1, double y1, double x2, double y2, int distance_metric) {
+  if(distance_metric == 0){
+    return  sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2));
+  }else if(distance_metric == 1){
+    return distanceEarth(x1, y1, x2, y2);
+  }
+}
+
 void matrix_print(const gsl_matrix * M)
 {
   // Get the dimension of the matrix.
@@ -368,7 +413,6 @@ double univariate_matern_spatial(double *PARAM, double *l1, double *l2)
   }else{
     cov_val = con * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
   }
-  //printf("loc1: %f, %f, %f; loc2: %f, %f, %f; dist: %f; cov: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], expr, cov_val);
   return cov_val;
 }
 
@@ -379,8 +423,13 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
   double con = 0.0;
   double sigma_square = 0.0, range = PARAM[2], smoothness = 0.0;
 
-  if(l1[3] == l2[3]){
-    if(l1[3] == 1){
+  int variable1, variable2;
+
+  variable1 = l1[3];
+  variable2 = l2[3];
+
+  if(variable1 == variable2){
+    if(variable1 == 1){
       sigma_square = PARAM[0];
       smoothness = PARAM[3];
     }else{
@@ -397,7 +446,6 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
   con = sigma_square * con;
 
   expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / range;
-  //printf("location1: %f, %f, %f, %f; location2: %f, %f, %f, %f \n", l1[0], l1[1], l1[2], l1[3], l2[0], l2[1], l2[2], l2[3]);
 
   if(expr == 0){
     cov_val = sigma_square;
@@ -1116,6 +1164,219 @@ double basis_function(double *PARAM, double *l1, double *l2)
   return cov_val;
 }
 
+
+/*
+ * Auxiliary functions for the bivariate_differential_operator_salvana_spatial
+ * 
+*/
+
+double h(double scale_horizontal_space, double scale_vertical_space, 
+  double lat1d, double lon1d, double pres1, 
+  double lat2d, double lon2d, double pres2){
+
+  return pow(scale_horizontal_space, 2) * pow(calculateDistance(lat1d, lon1d, lat2d, lon2d, 1), 2) + 
+    pow(scale_vertical_space, 2) * pow(pres1 - pres2, 2);
+}
+
+double h1(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  L = lat1r - lat2r;
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * (sin(L / 2) * cos(L / 2) - sin(lat1r) * cos(lat2r) * pow(sin(l / 2), 2));
+}
+
+double h3(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * cos(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+}
+
+double h33(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  l = lon1r - lon2r;
+
+  con = 2 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * cos(lat1r) * cos(lat2r) * (pow(cos(l / 2), 2) - pow(sin(l / 2), 2));
+}
+
+double h12(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  L = lat1r - lat2r;
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * (-pow(cos(L / 2), 2) / 2 + pow(sin(L / 2), 2) / 2 + sin(lat1r) * sin(lat2r) * pow(sin(l / 2), 2));
+}
+
+double h13(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return -con * sin(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+}
+
+double h4(double scale_vertical_space, double pres1, double pres2){
+  return 2 * pow(scale_vertical_space, 2) * (pres1 - pres2);
+}
+
+double h44(double scale_vertical_space){
+  return 2 * pow(scale_vertical_space, 2);
+}
+
+double C1(double *PARAM, double *l1, double *l2){
+
+  double H, H1, H2, H3, H4;
+  double a1, b1, c1, d1, a2, b2, c2, d2;
+
+  a1 = PARAM[2];
+  b1 = PARAM[3];
+  c1 = PARAM[4];
+  d1 = PARAM[5];
+  a2 = PARAM[6];
+  b2 = PARAM[7];
+  c2 = PARAM[8];
+  d2 = PARAM[9];
+
+  H = h(PARAM[0], PARAM[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]);
+  H1 = h1(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H2 = h1(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
+  H3 = h3(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H4 = h4(PARAM[1], l1[2], l2[2]);
+
+  return 0.25 * (a1 * a2 * H1 * H2 - b1 * b2 * pow(H3, 2) - c1 * c2 * pow(H4, 2) - a1 * b2 * H1 * H3
+    + a2 * b1 * H2 * H3 - a1 * c2 * H1 * H4 + a2 * c1 * H2 * H4
+    - b1 * c2 * H3 * H4 - b2 * c1 * H3 * H4) + H * d1 * d2;
+}
+
+double C2(double *PARAM, double *l1, double *l2){
+
+  double H12, H13, H23, H33, H44;
+  double a1, b1, c1, d1, a2, b2, c2, d2, nu;
+
+  a1 = PARAM[2];
+  b1 = PARAM[3];
+  c1 = PARAM[4];
+  d1 = PARAM[5];
+  a2 = PARAM[6];
+  b2 = PARAM[7];
+  c2 = PARAM[8];
+  d2 = PARAM[9];
+
+  nu = PARAM[10];
+
+  H12 = h12(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H13 = h13(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H23 = h13(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
+  H33 = h33(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H44 = h44(PARAM[1]);
+  
+  return -0.5 * (a1 * a2 * H12 - b1 * b2 * H33 - c1 * c2 * H44 - a1 * b2 * H13 
+    + a2 * b1 * H23) + 2 * nu * d1 * d2;
+}
+
+double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0, nugget = 0.0;
+  double sigma_square = 0.0, scale_horizontal = PARAM[2], scale_vertical = PARAM[3], smoothness = 0.0;
+  double PARAM_SUB[11];
+
+  int variable1, variable2;
+
+  variable1 = l1[3];
+  variable2 = l2[3];
+
+  PARAM_SUB[0] = scale_horizontal;
+  PARAM_SUB[1] = scale_vertical;
+
+  if(variable1 == variable2){
+    if(variable1 == 1){
+      sigma_square = PARAM[0];
+      smoothness = PARAM[4];
+      PARAM_SUB[2] = PARAM_SUB[6] = PARAM[7];
+      PARAM_SUB[3] = PARAM_SUB[7] = PARAM[8];
+      PARAM_SUB[4] = PARAM_SUB[8] = PARAM[9];
+      PARAM_SUB[5] = PARAM_SUB[9] = PARAM[10];
+    }else{
+      sigma_square = PARAM[1];
+      smoothness = PARAM[5];
+      PARAM_SUB[2] = PARAM_SUB[6] = PARAM[11];
+      PARAM_SUB[3] = PARAM_SUB[7] = PARAM[12];
+      PARAM_SUB[4] = PARAM_SUB[8] = PARAM[13];
+      PARAM_SUB[5] = PARAM_SUB[9] = PARAM[14];
+    }
+  nugget = 1e-5;
+
+  }else{
+    sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[4] + PARAM[5]);
+    PARAM_SUB[2] = PARAM[7];
+    PARAM_SUB[3] = PARAM[8];
+    PARAM_SUB[4] = PARAM[9];
+    PARAM_SUB[5] = PARAM[10];
+    PARAM_SUB[6] = PARAM[11];
+    PARAM_SUB[7] = PARAM[12];
+    PARAM_SUB[8] = PARAM[13];
+    PARAM_SUB[9] = PARAM[14];
+  }
+  PARAM_SUB[10] = smoothness;
+
+  con = pow(2, (smoothness - 1)) * tgamma(smoothness);
+  con = 1.0/con;
+  con = sigma_square * con;
+ 
+  expr = sqrt(h(PARAM_SUB[0], PARAM_SUB[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]));
+
+  if(expr == 0){
+    cov_val = sigma_square * (C1(PARAM_SUB, l1, l2) + C2(PARAM_SUB, l1, l2)) + nugget;
+  }else{
+    cov_val = con * (C1(PARAM_SUB, l1, l2) * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr)
+      + C2(PARAM_SUB, l1, l2) * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr));
+  }
+  return cov_val;
+}
+
 void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, double *gi)
 {
 
@@ -1143,6 +1404,8 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
     *gi = bivariate_matern_bourotte_spacetime(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 11){
     *gi = univariate_matern_numerical_lagrangian_spacetime(PARAM_VECTOR, L1, L2, 0);
+  }else if(*MODEL_NUM == 12){
+    *gi = bivariate_differential_operator_salvana_spatial(PARAM_VECTOR, L1, L2);
   }
 }
 
