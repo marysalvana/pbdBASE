@@ -1348,7 +1348,7 @@ double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1
     }
   nugget = 1e-5;
 
-  }else{
+  }else if(variable1 == 1 & variable2 == 2){
     sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
     smoothness = 0.5 * (PARAM[4] + PARAM[5]);
     PARAM_SUB[2] = PARAM[7];
@@ -1359,6 +1359,17 @@ double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1
     PARAM_SUB[7] = PARAM[12];
     PARAM_SUB[8] = PARAM[13];
     PARAM_SUB[9] = PARAM[14];
+  }else if(variable1 == 2 & variable2 == 1){
+    sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[4] + PARAM[5]);
+    PARAM_SUB[2] = PARAM[11];
+    PARAM_SUB[3] = PARAM[12];
+    PARAM_SUB[4] = PARAM[13];
+    PARAM_SUB[5] = PARAM[14];
+    PARAM_SUB[6] = PARAM[7];
+    PARAM_SUB[7] = PARAM[8];
+    PARAM_SUB[8] = PARAM[9];
+    PARAM_SUB[9] = PARAM[10];
   }
   PARAM_SUB[10] = smoothness;
 
