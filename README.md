@@ -34,6 +34,11 @@ See the vignette for installation troubleshooting.
 
 ## Modifying Codes and Re-installing Package
 
+Fortran covariance matrix construction is in
+```
+pbdBASE/src/base/utils/dmat_redist.f
+```
+
 On the terminal, run the following:
 
   ```
