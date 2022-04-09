@@ -31,3 +31,12 @@ remotes::install_github("RBigData/pbdBASE")
 ```
 
 See the vignette for installation troubleshooting.
+
+## Modifying Codes and Re-installing Package
+
+On the terminal, run the following:
+
+  ```
+  R CMD build pbdBASE --no-build-vignettes
+  R CMD INSTALL pbdBASE_0.5-3.tar.gz
+  ```
