@@ -22,7 +22,7 @@
 #include <gsl/gsl_randist.h>
 
 #define PI (3.141592653589793)
-#define earthRadiusKm 1 //6371.0
+#define earthRadiusKm 6371.0
 
 // This function converts decimal degrees to radians
 
@@ -395,6 +395,155 @@ double matrix_determinant(gsl_matrix *matrix, int size)
   return det;
 }
 
+/*
+ * Auxiliary functions for the bivariate_differential_operator_salvana_spatial
+ * 
+*/
+
+double h(double scale_horizontal_space, double scale_vertical_space, 
+  double lat1d, double lon1d, double pres1, 
+  double lat2d, double lon2d, double pres2){
+
+  return pow(scale_horizontal_space, 2) * pow(calculateDistance(lat1d, lon1d, lat2d, lon2d, 1), 2) + 
+    pow(scale_vertical_space, 2) * pow(pres1 - pres2, 2);
+}
+
+double h1(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  L = lat1r - lat2r;
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * (sin(L / 2) * cos(L / 2) - sin(lat1r) * cos(lat2r) * pow(sin(l / 2), 2));
+}
+
+double h3(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * cos(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+}
+
+double h33(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  l = lon1r - lon2r;
+
+  con = 2 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * cos(lat1r) * cos(lat2r) * (pow(cos(l / 2), 2) - pow(sin(l / 2), 2));
+}
+
+double h12(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  L = lat1r - lat2r;
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return con * (-pow(cos(L / 2), 2) / 2 + pow(sin(L / 2), 2) / 2 + sin(lat1r) * sin(lat2r) * pow(sin(l / 2), 2));
+}
+
+double h13(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
+
+  double lat1r, lon1r, lat2r, lon2r, L, l, con;
+
+  lat1r = deg2rad(lat1d);
+  lon1r = deg2rad(lon1d);
+  lat2r = deg2rad(lat2d);
+  lon2r = deg2rad(lon2d);
+  l = lon1r - lon2r;
+
+  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
+
+  return -con * sin(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+}
+
+double h4(double scale_vertical_space, double pres1, double pres2){
+  return 2 * pow(scale_vertical_space, 2) * (pres1 - pres2);
+}
+
+double h44(double scale_vertical_space){
+  return 2 * pow(scale_vertical_space, 2);
+}
+
+double C1(double *PARAM, double *l1, double *l2){
+
+  double H, H1, H2, H3, H4;
+  double a1, b1, c1, d1, a2, b2, c2, d2;
+
+  a1 = PARAM[2];
+  b1 = PARAM[3];
+  c1 = PARAM[4];
+  d1 = PARAM[5];
+  a2 = PARAM[6];
+  b2 = PARAM[7];
+  c2 = PARAM[8];
+  d2 = PARAM[9];
+
+  H = h(PARAM[0], PARAM[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]);
+  H1 = h1(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H2 = h1(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
+  H3 = h3(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H4 = h4(PARAM[1], l1[2], l2[2]);
+
+  return 0.25 * (a1 * a2 * H1 * H2 - b1 * b2 * pow(H3, 2) - c1 * c2 * pow(H4, 2) - a1 * b2 * H1 * H3
+    + a2 * b1 * H2 * H3 - a1 * c2 * H1 * H4 + a2 * c1 * H2 * H4
+    - b1 * c2 * H3 * H4 - b2 * c1 * H3 * H4) + H * d1 * d2;
+}
+
+double C2(double *PARAM, double *l1, double *l2){
+
+  double H12, H13, H23, H33, H44;
+  double a1, b1, c1, d1, a2, b2, c2, d2, nu;
+
+  a1 = PARAM[2];
+  b1 = PARAM[3];
+  c1 = PARAM[4];
+  d1 = PARAM[5];
+  a2 = PARAM[6];
+  b2 = PARAM[7];
+  c2 = PARAM[8];
+  d2 = PARAM[9];
+
+  nu = PARAM[10];
+
+  H12 = h12(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H13 = h13(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H23 = h13(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
+  H33 = h33(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
+  H44 = h44(PARAM[1]);
+  
+  return -0.5 * (a1 * a2 * H12 - b1 * b2 * H33 - c1 * c2 * H44 - a1 * b2 * H13 
+    + a2 * b1 * H23) + 2 * nu * d1 * d2;
+}
+
 double univariate_matern_spatial(double *PARAM, double *l1, double *l2)
 {
   double cov_val = 0.0;
@@ -416,7 +565,7 @@ double univariate_matern_spatial(double *PARAM, double *l1, double *l2)
   return cov_val;
 }
 
-double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *l2)
+double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *l2, int earth)
 {
   double cov_val = 0.0;
   double expr = 0.0;
@@ -425,8 +574,8 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
 
   int variable1, variable2;
 
-  variable1 = l1[3];
-  variable2 = l2[3];
+  variable1 = l1[4];
+  variable2 = l2[4];
 
   if(variable1 == variable2){
     if(variable1 == 1){
@@ -445,7 +594,11 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
   con = 1.0/con;
   con = sigma_square * con;
 
-  expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / range;
+  if(earth == 1){
+    expr = sqrt(h(range, PARAM[6], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]));
+  }else{
+    expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / range;
+  }
 
   if(expr == 0){
     cov_val = sigma_square;
@@ -472,14 +625,14 @@ double univariate_matern_schlather_spacetime(double *PARAM, double *l1, double *
   con = pow(2,(smoothness - 1)) * tgamma(smoothness);
   con = 1.0/con;
 
-  l1x_new = l1[0] - vel_mean_x * l1[2];
-  l1y_new = l1[1] - vel_mean_y * l1[2];
-  l2x_new = l2[0] - vel_mean_x * l2[2];
-  l2y_new = l2[1] - vel_mean_y * l2[2];
+  l1x_new = l1[0] - vel_mean_x * l1[3];
+  l1y_new = l1[1] - vel_mean_y * l1[3];
+  l2x_new = l2[0] - vel_mean_x * l2[3];
+  l2y_new = l2[1] - vel_mean_y * l2[3];
 
   xlag = l1x_new - l2x_new;
   ylag = l1y_new - l2y_new;
-  tlag = l1[2] - l2[2];
+  tlag = l1[3] - l2[3];
 
   if(vel_variance_supplied == 0){
 
@@ -622,8 +775,8 @@ double bivariate_matern_salvana_single_advection_spacetime(double *PARAM, double
   double sigma_square = 0.0, range = PARAM[2], smoothness = 0.0;
   int variable1, variable2;
 
-  variable1 = l1[3];
-  variable2 = l2[3];
+  variable1 = l1[4];
+  variable2 = l2[4];
 
   if(variable1 == variable2){
     if(variable1 == 1){
@@ -649,14 +802,14 @@ double bivariate_matern_salvana_single_advection_spacetime(double *PARAM, double
   con = pow(2,(smoothness - 1)) * tgamma(smoothness);
   con = 1.0/con;
 
-  l1x_new = l1[0] - vel_mean_x * l1[2];
-  l1y_new = l1[1] - vel_mean_y * l1[2];
-  l2x_new = l2[0] - vel_mean_x * l2[2];
-  l2y_new = l2[1] - vel_mean_y * l2[2];
+  l1x_new = l1[0] - vel_mean_x * l1[3];
+  l1y_new = l1[1] - vel_mean_y * l1[3];
+  l2x_new = l2[0] - vel_mean_x * l2[3];
+  l2y_new = l2[1] - vel_mean_y * l2[3];
 
   xlag = l1x_new - l2x_new;
   ylag = l1y_new - l2y_new;
-  tlag = l1[2] - l2[2];
+  tlag = l1[3] - l2[3];
 
   vel_variance11 = pow(vel_variance_chol_11, 2);
   vel_variance22 = pow(vel_variance_chol_12, 2) + pow(vel_variance_chol_22, 2);
@@ -681,6 +834,7 @@ double bivariate_matern_salvana_single_advection_spacetime(double *PARAM, double
   }else{
     cov_val = con_new * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
   }
+
   return cov_val;
 }
 
@@ -707,11 +861,11 @@ double bivariate_matern_salvana_multiple_advection_spacetime(double *PARAM, doub
   hlag[0] = l1[0] - l2[0];
   hlag[1] = l1[1] - l2[1];
 
-  t1 = l1[2];
-  t2 = l2[2];
+  t1 = l1[3];
+  t2 = l2[3];
     
-  variable1 = l1[3];
-  variable2 = l2[3];
+  variable1 = l1[4];
+  variable2 = l2[4];
 
   vel_variance_temp[0] = pow(PARAM[10], 2);
   vel_variance_temp[5] = pow(PARAM[11], 2) + pow(PARAM[14], 2);
@@ -1165,154 +1319,6 @@ double basis_function(double *PARAM, double *l1, double *l2)
 }
 
 
-/*
- * Auxiliary functions for the bivariate_differential_operator_salvana_spatial
- * 
-*/
-
-double h(double scale_horizontal_space, double scale_vertical_space, 
-  double lat1d, double lon1d, double pres1, 
-  double lat2d, double lon2d, double pres2){
-
-  return pow(scale_horizontal_space, 2) * pow(calculateDistance(lat1d, lon1d, lat2d, lon2d, 1), 2) + 
-    pow(scale_vertical_space, 2) * pow(pres1 - pres2, 2);
-}
-
-double h1(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
-
-  double lat1r, lon1r, lat2r, lon2r, L, l, con;
-
-  lat1r = deg2rad(lat1d);
-  lon1r = deg2rad(lon1d);
-  lat2r = deg2rad(lat2d);
-  lon2r = deg2rad(lon2d);
-  L = lat1r - lat2r;
-  l = lon1r - lon2r;
-
-  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
-
-  return con * (sin(L / 2) * cos(L / 2) - sin(lat1r) * cos(lat2r) * pow(sin(l / 2), 2));
-}
-
-double h3(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
-
-  double lat1r, lon1r, lat2r, lon2r, L, l, con;
-
-  lat1r = deg2rad(lat1d);
-  lon1r = deg2rad(lon1d);
-  lat2r = deg2rad(lat2d);
-  lon2r = deg2rad(lon2d);
-  l = lon1r - lon2r;
-
-  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
-
-  return con * cos(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
-}
-
-double h33(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
-
-  double lat1r, lon1r, lat2r, lon2r, L, l, con;
-
-  lat1r = deg2rad(lat1d);
-  lon1r = deg2rad(lon1d);
-  lat2r = deg2rad(lat2d);
-  lon2r = deg2rad(lon2d);
-  l = lon1r - lon2r;
-
-  con = 2 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
-
-  return con * cos(lat1r) * cos(lat2r) * (pow(cos(l / 2), 2) - pow(sin(l / 2), 2));
-}
-
-double h12(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
-
-  double lat1r, lon1r, lat2r, lon2r, L, l, con;
-
-  lat1r = deg2rad(lat1d);
-  lon1r = deg2rad(lon1d);
-  lat2r = deg2rad(lat2d);
-  lon2r = deg2rad(lon2d);
-  L = lat1r - lat2r;
-  l = lon1r - lon2r;
-
-  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
-
-  return con * (-pow(cos(L / 2), 2) / 2 + pow(sin(L / 2), 2) / 2 + sin(lat1r) * sin(lat2r) * pow(sin(l / 2), 2));
-}
-
-double h13(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
-
-  double lat1r, lon1r, lat2r, lon2r, L, l, con;
-
-  lat1r = deg2rad(lat1d);
-  lon1r = deg2rad(lon1d);
-  lat2r = deg2rad(lat2d);
-  lon2r = deg2rad(lon2d);
-  l = lon1r - lon2r;
-
-  con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
-
-  return -con * sin(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
-}
-
-double h4(double scale_vertical_space, double pres1, double pres2){
-  return 2 * pow(scale_vertical_space, 2) * (pres1 - pres2);
-}
-
-double h44(double scale_vertical_space){
-  return 2 * pow(scale_vertical_space, 2);
-}
-
-double C1(double *PARAM, double *l1, double *l2){
-
-  double H, H1, H2, H3, H4;
-  double a1, b1, c1, d1, a2, b2, c2, d2;
-
-  a1 = PARAM[2];
-  b1 = PARAM[3];
-  c1 = PARAM[4];
-  d1 = PARAM[5];
-  a2 = PARAM[6];
-  b2 = PARAM[7];
-  c2 = PARAM[8];
-  d2 = PARAM[9];
-
-  H = h(PARAM[0], PARAM[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]);
-  H1 = h1(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H2 = h1(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
-  H3 = h3(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H4 = h4(PARAM[1], l1[2], l2[2]);
-
-  return 0.25 * (a1 * a2 * H1 * H2 - b1 * b2 * pow(H3, 2) - c1 * c2 * pow(H4, 2) - a1 * b2 * H1 * H3
-    + a2 * b1 * H2 * H3 - a1 * c2 * H1 * H4 + a2 * c1 * H2 * H4
-    - b1 * c2 * H3 * H4 - b2 * c1 * H3 * H4) + H * d1 * d2;
-}
-
-double C2(double *PARAM, double *l1, double *l2){
-
-  double H12, H13, H23, H33, H44;
-  double a1, b1, c1, d1, a2, b2, c2, d2, nu;
-
-  a1 = PARAM[2];
-  b1 = PARAM[3];
-  c1 = PARAM[4];
-  d1 = PARAM[5];
-  a2 = PARAM[6];
-  b2 = PARAM[7];
-  c2 = PARAM[8];
-  d2 = PARAM[9];
-
-  nu = PARAM[10];
-
-  H12 = h12(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H13 = h13(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H23 = h13(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
-  H33 = h33(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H44 = h44(PARAM[1]);
-  
-  return -0.5 * (a1 * a2 * H12 - b1 * b2 * H33 - c1 * c2 * H44 - a1 * b2 * H13 
-    + a2 * b1 * H23) + 2 * nu * d1 * d2;
-}
 
 double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1, double *l2)
 {
@@ -1324,8 +1330,8 @@ double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1
 
   int variable1, variable2;
 
-  variable1 = l1[3];
-  variable2 = l2[3];
+  variable1 = l1[4];
+  variable2 = l2[4];
 
   PARAM_SUB[0] = scale_horizontal;
   PARAM_SUB[1] = scale_vertical;
@@ -1379,6 +1385,84 @@ double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1
  
   expr = sqrt(h(PARAM_SUB[0], PARAM_SUB[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]));
 
+  //printf("expr: %f; scale_horizontal: %f, scale_vertical: %f, l1[1]: %f, l1[0]: %f, l1[2]: %f, l2[1]: %f, l2[0]: %f, l2[2]: %f \n", expr, PARAM_SUB[0], PARAM_SUB[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]);
+
+  if(expr == 0){
+    cov_val = sigma_square * (C1(PARAM_SUB, l1, l2) + C2(PARAM_SUB, l1, l2)) + nugget;
+  }else{
+    cov_val = con * (C1(PARAM_SUB, l1, l2) * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr)
+      + C2(PARAM_SUB, l1, l2) * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr));
+  }
+  return cov_val;
+}
+
+double bivariate_differential_operator_with_bsplines_salvana_spatial(double *PARAM, double *l1, double *l2)
+{
+  double cov_val = 0.0;
+  double expr = 0.0;
+  double con = 0.0, nugget = 0.0;
+  double sigma_square = 0.0, scale_horizontal = PARAM[2], scale_vertical = PARAM[3], smoothness = 0.0;
+  double PARAM_SUB[11];
+
+  int variable1, variable2;
+
+  variable1 = l1[4];
+  variable2 = l2[4];
+
+  PARAM_SUB[0] = scale_horizontal;
+  PARAM_SUB[1] = scale_vertical;
+
+  if(variable1 == variable2){
+    if(variable1 == 1){
+      sigma_square = PARAM[0];
+      smoothness = PARAM[4];
+      PARAM_SUB[2] = PARAM_SUB[6] = PARAM[7];
+      PARAM_SUB[3] = PARAM_SUB[7] = PARAM[8];
+      PARAM_SUB[5] = PARAM_SUB[9] = PARAM[9];
+      PARAM_SUB[4] = l1[5];
+      PARAM_SUB[8] = l2[5];
+    }else{
+      sigma_square = PARAM[1];
+      smoothness = PARAM[5];
+      PARAM_SUB[2] = PARAM_SUB[6] = PARAM[10];
+      PARAM_SUB[3] = PARAM_SUB[7] = PARAM[11];
+      PARAM_SUB[5] = PARAM_SUB[9] = PARAM[12];
+      PARAM_SUB[4] = l1[6];
+      PARAM_SUB[8] = l2[6];
+    }
+  nugget = 1e-5;
+
+  }else if(variable1 == 1 & variable2 == 2){
+    sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[4] + PARAM[5]);
+    PARAM_SUB[2] = PARAM[7];
+    PARAM_SUB[3] = PARAM[8];
+    PARAM_SUB[4] = l1[5];
+    PARAM_SUB[5] = PARAM[9];
+    PARAM_SUB[6] = PARAM[10];
+    PARAM_SUB[7] = PARAM[11];
+    PARAM_SUB[8] = l2[6];
+    PARAM_SUB[9] = PARAM[12];
+  }else if(variable1 == 2 & variable2 == 1){
+    sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
+    smoothness = 0.5 * (PARAM[4] + PARAM[5]);
+    PARAM_SUB[2] = PARAM[10];
+    PARAM_SUB[3] = PARAM[11];
+    PARAM_SUB[4] = l1[6];
+    PARAM_SUB[5] = PARAM[12];
+    PARAM_SUB[6] = PARAM[7];
+    PARAM_SUB[7] = PARAM[8];
+    PARAM_SUB[8] = l2[5];
+    PARAM_SUB[9] = PARAM[9];
+  }
+  PARAM_SUB[10] = smoothness;
+
+  con = pow(2, (smoothness - 1)) * tgamma(smoothness);
+  con = 1.0/con;
+  con = sigma_square * con;
+ 
+  expr = sqrt(h(PARAM_SUB[0], PARAM_SUB[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]));
+
   if(expr == 0){
     cov_val = sigma_square * (C1(PARAM_SUB, l1, l2) + C2(PARAM_SUB, l1, l2)) + nugget;
   }else{
@@ -1398,7 +1482,7 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
   }else if(*MODEL_NUM == 2){
     *gi = univariate_matern_schlather_spacetime(PARAM_VECTOR, L1, L2, 0);
   }else if(*MODEL_NUM == 3){
-    *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2);
+    *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2, 0);
   }else if(*MODEL_NUM == 4){
     *gi = bivariate_matern_salvana_single_advection_spacetime(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 5){
@@ -1417,6 +1501,10 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
     *gi = univariate_matern_numerical_lagrangian_spacetime(PARAM_VECTOR, L1, L2, 0);
   }else if(*MODEL_NUM == 12){
     *gi = bivariate_differential_operator_salvana_spatial(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 13){
+    *gi = bivariate_differential_operator_with_bsplines_salvana_spatial(PARAM_VECTOR, L1, L2);
+  }else if(*MODEL_NUM == 14){
+    *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2, 1);
   }
 }
 
