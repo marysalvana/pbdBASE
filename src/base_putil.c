@@ -21,6 +21,9 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
+
+#include <gsl/gsl_errno.h>
+
 #define PI (3.141592653589793)
 #define earthRadiusKm 6371.0
 
@@ -404,8 +407,10 @@ double h(double scale_horizontal_space, double scale_vertical_space,
   double lat1d, double lon1d, double pres1, 
   double lat2d, double lon2d, double pres2){
 
-  return pow(scale_horizontal_space, 2) * pow(calculateDistance(lat1d, lon1d, lat2d, lon2d, 1), 2) + 
-    pow(scale_vertical_space, 2) * pow(pres1 - pres2, 2);
+  double h_val = pow(scale_horizontal_space, 2) * pow(calculateDistance(lat1d, lon1d, lat2d, lon2d, 1), 2) +
+    pow(scale_vertical_space, 2) * pow(pres1 - pres2, 2);  
+
+  return h_val;
 }
 
 double h1(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
@@ -436,7 +441,8 @@ double h3(double scale_horizontal_space, double lat1d, double lon1d, double lat2
 
   con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
 
-  return con * cos(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+  //return con * cos(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+  return con * sin(l / 2) * cos(l / 2);
 }
 
 double h33(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
@@ -451,7 +457,8 @@ double h33(double scale_horizontal_space, double lat1d, double lon1d, double lat
 
   con = 2 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
 
-  return con * cos(lat1r) * cos(lat2r) * (pow(cos(l / 2), 2) - pow(sin(l / 2), 2));
+  //return con * cos(lat1r) * cos(lat2r) * (pow(cos(l / 2), 2) - pow(sin(l / 2), 2));
+  return con * (pow(cos(l / 2), 2) - pow(sin(l / 2),2));
 }
 
 double h12(double scale_horizontal_space, double lat1d, double lon1d, double lat2d, double lon2d){
@@ -482,7 +489,8 @@ double h13(double scale_horizontal_space, double lat1d, double lon1d, double lat
 
   con = 4 * pow(scale_horizontal_space, 2) * pow(earthRadiusKm, 2);
 
-  return -con * sin(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+  //return -con * sin(lat1r) * cos(lat2r) * sin(l / 2) * cos(l / 2);
+  return -con * sin(lat1r) * sin(l / 2) * cos(l / 2);
 }
 
 double h4(double scale_vertical_space, double pres1, double pres2){
@@ -493,55 +501,39 @@ double h44(double scale_vertical_space){
   return 2 * pow(scale_vertical_space, 2);
 }
 
-double C1(double *PARAM, double *l1, double *l2){
+double C1(double scale_horizontal, double scale_vertical, double a1, double b1, double c1, double d1, double a2, double b2, double c2, double d2, double *l1, double *l2){
 
-  double H, H1, H2, H3, H4;
-  double a1, b1, c1, d1, a2, b2, c2, d2;
+  double H = h(scale_horizontal, scale_vertical, l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]);
+  double H1 = h1(scale_horizontal, l1[1], l1[0], l2[1], l2[0]);
+  double H2 = h1(scale_horizontal, l2[1], l1[0], l1[1], l2[0]);
+  double H3 = h3(scale_horizontal, l1[1], l1[0], l2[1], l2[0]);
+  double H4 = h4(scale_vertical, l1[2], l2[2]);
 
-  a1 = PARAM[2];
-  b1 = PARAM[3];
-  c1 = PARAM[4];
-  d1 = PARAM[5];
-  a2 = PARAM[6];
-  b2 = PARAM[7];
-  c2 = PARAM[8];
-  d2 = PARAM[9];
 
-  H = h(PARAM[0], PARAM[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]);
-  H1 = h1(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H2 = h1(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
-  H3 = h3(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H4 = h4(PARAM[1], l1[2], l2[2]);
-
-  return 0.25 * (a1 * a2 * H1 * H2 - b1 * b2 * pow(H3, 2) - c1 * c2 * pow(H4, 2) - a1 * b2 * H1 * H3
+  double return_val = 0.25 * (a1 * a2 * H1 * H2 - b1 * b2 * pow(H3, 2) - c1 * c2 * pow(H4, 2) - a1 * b2 * H1 * H3
     + a2 * b1 * H2 * H3 - a1 * c2 * H1 * H4 + a2 * c1 * H2 * H4
-    - b1 * c2 * H3 * H4 - b2 * c1 * H3 * H4);
+    - b1 * c2 * H3 * H4 - b2 * c1 * H3 * H4) + H * d1 * d2;
+int variable1 = l1[4];
+int variable2 = l2[4];
+ // printf("l1[0]: %f,l1[1]: %f,l1[2]: %f, variable1: %d,l2[0]: %f,l2[1]: %f,l2[2]: %f, variable2: %d,H: %f,H1: %f,H2: %f, H3: %f,H4: %f, return_val: %lf \n", l1[0], l1[1], l1[2], variable1, l2[0], l2[1], l2[2], variable2, H, H1, H2, H3, H4, return_val);
+
+  return return_val;
 }
 
-double C2(double *PARAM, double *l1, double *l2){
+double C2(double scale_horizontal, double scale_vertical, double smoothness, double a1, double b1, double c1, double d1, double a2, double b2, double c2, double d2, double *l1, double *l2){
 
-  double H12, H13, H23, H33, H44;
-  double a1, b1, c1, d1, a2, b2, c2, d2, nu;
+  double H12 = h12(scale_horizontal, l1[1], l1[0], l2[1], l2[0]);
+  double H13 = h13(scale_horizontal, l1[1], l1[0], l2[1], l2[0]);
+  double H23 = h13(scale_horizontal, l2[1], l1[0], l1[1], l2[0]);
+  double H33 = h33(scale_horizontal, l1[1], l1[0], l2[1], l2[0]);
+  double H44 = h44(scale_vertical);
 
-  a1 = PARAM[2];
-  b1 = PARAM[3];
-  c1 = PARAM[4];
-  d1 = PARAM[5];
-  a2 = PARAM[6];
-  b2 = PARAM[7];
-  c2 = PARAM[8];
-  d2 = PARAM[9];
-
-  nu = PARAM[10];
-
-  H12 = h12(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H13 = h13(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H23 = h13(PARAM[0], l2[1], l1[0], l1[1], l2[0]);
-  H33 = h33(PARAM[0], l1[1], l1[0], l2[1], l2[0]);
-  H44 = h44(PARAM[1]);
+  //printf("l1[0]: %f,l1[1]: %f,l1[2]: %f,l2[0]: %f,l2[1]: %f,l2[2]: %f,H12: %f,H13: %f,H23: %f, H33: %f,H44: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], H12, H13, H23, H33, H44);
   
-  return -0.5 * (a1 * a2 * H12 - b1 * b2 * H33 - c1 * c2 * H44 - a1 * b2 * H13 
-    + a2 * b1 * H23);
+  double return_val = -0.5 * (a1 * a2 * H12 - b1 * b2 * H33 - c1 * c2 * H44 - a1 * b2 * H13
+    + a2 * b1 * H23) + 2 * smoothness * d1 * d2;
+//add the smoothness term later
+  return return_val;
 }
 
 double univariate_matern_spatial(double *PARAM, double *l1, double *l2)
@@ -599,10 +591,13 @@ double bivariate_matern_parsimonious_spatial(double *PARAM, double *l1, double *
   }else{
     expr = sqrt(pow(l1[0] - l2[0], 2) + pow(l1[1] - l2[1], 2)) / range;
   }
-
+   
   if(expr == 0){
     cov_val = sigma_square;
   }else{
+
+    gsl_set_error_handler_off();
+
     cov_val = con * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr);
   }
   return cov_val;
@@ -1324,9 +1319,9 @@ double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1
 {
   double cov_val = 0.0;
   double expr = 0.0;
-  double con = 0.0, nugget = 0.0;
+  double con = 0.0, f = 0.0, f_prime = 0.0, C1_val = 0.0, C2_val = 0.0;
   double sigma_square = 0.0, scale_horizontal = PARAM[2], scale_vertical = PARAM[3], smoothness = 0.0;
-  double PARAM_SUB[11];
+  double PARAM_SUB[11], a1 = 0.0, b1 = 0.0, c1 = 0.0, d1 = 0.0, a2 = 0.0, b2 = 0.0, c2 = 0.0, d2 = 0.0;
 
   int variable1, variable2;
 
@@ -1352,7 +1347,6 @@ double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1
       PARAM_SUB[4] = PARAM_SUB[8] = PARAM[13];
       PARAM_SUB[5] = PARAM_SUB[9] = PARAM[14];
     }
-  nugget = 1e-5;
 
   }else if(variable1 == 1 & variable2 == 2){
     sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
@@ -1385,13 +1379,20 @@ double bivariate_differential_operator_salvana_spatial(double *PARAM, double *l1
  
   expr = sqrt(h(PARAM_SUB[0], PARAM_SUB[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]));
 
-  //printf("expr: %f; scale_horizontal: %f, scale_vertical: %f, l1[1]: %f, l1[0]: %f, l1[2]: %f, l2[1]: %f, l2[0]: %f, l2[2]: %f \n", expr, PARAM_SUB[0], PARAM_SUB[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]);
+  C1_val = C1(scale_horizontal, scale_vertical, a1, b1, c1, d1, a2, b2, c2, d2, l1, l2);
+  C2_val = C2(scale_horizontal, scale_vertical, smoothness, a1, b1, c1, d1, a2, b2, c2, d2, l1, l2);
 
   if(expr == 0){
-    cov_val = sigma_square * (C1(PARAM_SUB, l1, l2) + C2(PARAM_SUB, l1, l2)) + nugget;
+    cov_val = con * (C1_val + C2_val) + sigma_square * d1 * d2;
   }else{
-    cov_val = con * (C1(PARAM_SUB, l1, l2) * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr)
-      + C2(PARAM_SUB, l1, l2) * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr));
+    gsl_set_error_handler_off();
+    
+    f = pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr);
+    f_prime = pow(expr, smoothness - 2) * gsl_sf_bessel_Knu(smoothness - 2, expr);
+  
+    cov_val = con * (C1_val * f_prime + C2_val * f + d1 * d2 * (pow(expr, 2) * f_prime + 2 * (smoothness - 1) * f));
+    //cov_val = con * (C1(PARAM_SUB, l1, l2) * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr)
+      //+ C2(PARAM_SUB, l1, l2) * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr));
   }
   return cov_val;
 }
@@ -1400,94 +1401,88 @@ double bivariate_differential_operator_with_bsplines_salvana_spatial(double *PAR
 {
   double cov_val = 0.0, cov_val_temp = 0.0;
   double expr = 0.0;
-  double con = 0.0, nugget = 0.0;
+  double con = 0.0, f = 0.0, f_prime = 0.0, C1_val = 0.0, C2_val = 0.0;
   double sigma_square = 0.0, scale_horizontal = PARAM[2], scale_vertical = PARAM[3], smoothness = 0.0;
-  double PARAM_SUB[11], d1 = 0.0, d2 = 0.0;
+  double PARAM_SUB[11], a1 = 0.0, b1 = 0.0, c1 = 0.0, d1 = 0.0, a2 = 0.0, b2 = 0.0, c2 = 0.0, d2 = 0.0;
 
-  int variable1, variable2;
-
-  variable1 = l1[4];
-  variable2 = l2[4];
-
-  PARAM_SUB[0] = scale_horizontal;
-  PARAM_SUB[1] = scale_vertical;
+  int variable1 = l1[4], variable2 = l2[4];
 
   if(variable1 == variable2){
     if(variable1 == 1){
       sigma_square = PARAM[0];
       smoothness = PARAM[4];
-      PARAM_SUB[2] = PARAM_SUB[6] = PARAM[7];
-      PARAM_SUB[3] = PARAM_SUB[7] = PARAM[8];
-      d1 = d2 = PARAM_SUB[5] = PARAM_SUB[9] = PARAM[9];
-      PARAM_SUB[4] = l1[5];
-      PARAM_SUB[8] = l2[5];
+      a1 = a2 = PARAM[7];
+      b1 = b2 = PARAM[8];
+      d1 = d2 = PARAM[9];
+      c1 = l1[5];
+      c2 = l2[5];
     }else{
       sigma_square = PARAM[1];
       smoothness = PARAM[5];
-      PARAM_SUB[2] = PARAM_SUB[6] = PARAM[10];
-      PARAM_SUB[3] = PARAM_SUB[7] = PARAM[11];
-      d1 = d2 = PARAM_SUB[5] = PARAM_SUB[9] = PARAM[12];
-      PARAM_SUB[4] = l1[6];
-      PARAM_SUB[8] = l2[6];
+      a1 = a2 = PARAM[10];
+      b1 = b2 = PARAM[11];
+      d1 = d2 = PARAM[12];
+      c1 = l1[6];
+      c2 = l2[6];
     }
-  nugget = 1e-5;
 
   }else if(variable1 == 1 & variable2 == 2){
     sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
     smoothness = 0.5 * (PARAM[4] + PARAM[5]);
-    PARAM_SUB[2] = PARAM[7];
-    PARAM_SUB[3] = PARAM[8];
-    PARAM_SUB[4] = l1[5];
-    d1 = PARAM_SUB[5] = PARAM[9];
-    PARAM_SUB[6] = PARAM[10];
-    PARAM_SUB[7] = PARAM[11];
-    PARAM_SUB[8] = l2[6];
-    d2 = PARAM_SUB[9] = PARAM[12];
+    a1 = PARAM[7];
+    b1 = PARAM[8];
+    d1 = PARAM[9];
+    c1 = l1[5];
+    a2 = PARAM[10];
+    b2 = PARAM[11];
+    d2 = PARAM[12];
+    c2 = l2[6];
   }else if(variable1 == 2 & variable2 == 1){
     sigma_square = PARAM[6] * sqrt(PARAM[0] * PARAM[1]);
     smoothness = 0.5 * (PARAM[4] + PARAM[5]);
-    PARAM_SUB[2] = PARAM[10];
-    PARAM_SUB[3] = PARAM[11];
-    PARAM_SUB[4] = l1[6];
-    d1 = PARAM_SUB[5] = PARAM[12];
-    PARAM_SUB[6] = PARAM[7];
-    PARAM_SUB[7] = PARAM[8];
-    PARAM_SUB[8] = l2[5];
-    d2 = PARAM_SUB[9] = PARAM[9];
+    a1 = PARAM[10];
+    b1 = PARAM[11];
+    d1 = PARAM[12];
+    c1 = l1[6];
+    a2 = PARAM[7];
+    b2 = PARAM[8];
+    d2 = PARAM[9];
+    c2 = l2[5];
   }
-  PARAM_SUB[10] = smoothness;
 
   con = pow(2, (smoothness - 1)) * tgamma(smoothness);
   con = 1.0/con;
   con = sigma_square * con;
  
-  expr = sqrt(h(PARAM_SUB[0], PARAM_SUB[1], l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]));
+  expr = sqrt(h(scale_horizontal, scale_vertical, l1[1], l1[0], l1[2], l2[1], l2[0], l2[2]));
 
+  C1_val = C1(scale_horizontal, scale_vertical, a1, b1, c1, d1, a2, b2, c2, d2, l1, l2);
+  C2_val = C2(scale_horizontal, scale_vertical, smoothness, a1, b1, c1, d1, a2, b2, c2, d2, l1, l2);
+  //C2_val = C2(PARAM_SUB, l1, l2);
+
+  double nugget = 1e-3;
   if(expr == 0){
-    //cov_val_temp = sigma_square * (C1(PARAM_SUB, l1, l2) + C2(PARAM_SUB, l1, l2)) + nugget;
-    cov_val = con * (C1(PARAM_SUB, l1, l2) + C2(PARAM_SUB, l1, l2)) + sigma_square * d1 * d2;
-    //cov_val = sigma_square * (C1(PARAM_SUB, l1, l2) + C2(PARAM_SUB, l1, l2)) + sigma_square * d1 * d2;
-    
-    //cov_val = sigma_square * d1 * d2;
-
+    cov_val = con * (C1_val + C2_val) + sigma_square * d1 * d2;
+    if(variable1 == variable2){
+      cov_val = cov_val + nugget;
+    }
   }else{
-    cov_val = con * ((C1(PARAM_SUB, l1, l2) + pow(expr, 2) * d1 * d2) * pow(expr, smoothness - 2) * gsl_sf_bessel_Knu(smoothness - 2, expr)
-      + (C2(PARAM_SUB, l1, l2) + 2 * (smoothness - 1) * d1 * d2) * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr));
-    //cov_val_temp = con * (C1(PARAM_SUB, l1, l2) * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr)
-      //+ C2(PARAM_SUB, l1, l2) * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr));
-    //double cov_val1 = con1 * d1 * d2 * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr);
 
-
-    //cov_val = con * (pow(expr, 2) * d1 * d2 * pow(expr, smoothness - 2) * gsl_sf_bessel_Knu(smoothness - 2, expr)
-      //+ 2 * (smoothness - 1) * d1 * d2 * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr));
-
-
-    //double cov_val2 = con * (pow(expr, 2) * d1 * d2 * pow(expr, smoothness) * gsl_sf_bessel_Knu(smoothness, expr)
-      //+ 2 * (smoothness + 1) * d1 * d2 * pow(expr, smoothness + 1) * gsl_sf_bessel_Knu(smoothness + 1, expr));
-    //cov_val = cov_val1 - cov_val2;
-    //printf("cov_val1: %f -- cov_val2: %f \n", cov_val1, cov_val2);
+    gsl_set_error_handler_off();
+    
+    f = pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr);
+    f_prime = pow(expr, smoothness - 2) * gsl_sf_bessel_Knu(smoothness - 2, expr);
+  
+    cov_val = con * (C1_val * f_prime + C2_val * f + d1 * d2 * (pow(expr, 2) * f_prime + 2 * (smoothness - 1) * f));
+    //cov_val = con * ((C1(PARAM_SUB, l1, l2) + pow(expr, 2) * d1 * d2) * pow(expr, smoothness - 2) * gsl_sf_bessel_Knu(smoothness - 2, expr)
+      //+ (C2(PARAM_SUB, l1, l2) + 2 * (smoothness - 1) * d1 * d2) * pow(expr, smoothness - 1) * gsl_sf_bessel_Knu(smoothness - 1, expr));
   }
-      //printf("l1[0]: %f -- l1[1]: %f -- l1[2]: %f -- l2[0]: %f -- l2[1]: %f -- l2[2]: %f -- variable1: %d -- variable2: %d -- cov_val: %f \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], variable1, variable2, cov_val_temp);
+  
+  if(variable1 == 2 & variable2 == 2){
+    //printf("l1[0]: %f, l1[1]: %f, l1[2]: %f, l2[0]: %f, l2[1]: %f, l2[2]: %f, C1_val: %lf, C2_val: %lf, \n", l1[0], l1[1], l1[2], l2[0], l2[1], l2[2], C1_val, C2_val);
+  //printf("c1: %lf, c2: %lf, l1[2]: %f,l2[2]: %f,f: %lf, f_prime: %lf, C1_val: %lf, C2_val: %lf, expr: %lf, cov_val: %lf, \n", c1, c2, l1[2], l2[2], f, f_prime, C1_val, C2_val, expr, cov_val);
+  }
+
   return cov_val;
 }
 
@@ -1501,7 +1496,7 @@ void covfunc_(int *MODEL_NUM, double *PARAM_VECTOR, double *L1, double *L2, doub
   }else if(*MODEL_NUM == 2){
     *gi = univariate_matern_schlather_spacetime(PARAM_VECTOR, L1, L2, 0);
   }else if(*MODEL_NUM == 3){
-    *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2, 0);
+    *gi = bivariate_matern_parsimonious_spatial(PARAM_VECTOR, L1, L2, 1);
   }else if(*MODEL_NUM == 4){
     *gi = bivariate_matern_salvana_single_advection_spacetime(PARAM_VECTOR, L1, L2);
   }else if(*MODEL_NUM == 5){
